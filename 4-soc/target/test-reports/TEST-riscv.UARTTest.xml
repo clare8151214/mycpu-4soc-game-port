@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuite hostname="User" name="riscv.UARTTest" tests="18" errors="0" failures="0" skipped="0" time="2.446" timestamp="2025-12-28T20:58:42">
+          <properties>
+      <property name="jline.esc.timeout" value="0"/><property name="jna.platform.library.path" value="/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/usr/lib64:/lib64:/usr/lib:/lib:/usr/lib/x86_64-linux-gnu/libfakeroot"/><property name="java.runtime.name" value="OpenJDK Runtime Environment"/><property name="sun.boot.library.path" value="/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/amd64"/><property name="java.vm.version" value="25.472-b08"/><property name="java.vm.vendor" value="Temurin"/><property name="java.vendor.url" value="https://adoptium.net/"/><property name="path.separator" value=":"/><property name="jna.loaded" value="true"/><property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/><property name="file.encoding.pkg" value="sun.io"/><property name="user.country" value="US"/><property name="sun.java.launcher" value="SUN_STANDARD"/><property name="sun.os.patch.level" value="unknown"/><property name="jna.nosys" value="true"/><property name="java.vm.specification.name" value="Java Virtual Machine Specification"/><property name="user.dir" value="/home/johnson/Desktop/mycpu-4soc"/><property name="java.runtime.version" value="1.8.0_472-b08"/><property name="java.awt.graphicsenv" value="sun.awt.X11GraphicsEnvironment"/><property name="java.endorsed.dirs" value="/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/endorsed"/><property name="os.arch" value="amd64"/><property name="java.io.tmpdir" value="/tmp"/><property name="line.separator" value="
+"/><property name="java.vm.specification.vendor" value="Oracle Corporation"/><property name="log4j.ignoreTCL" value="true"/><property name="os.name" value="Linux"/><property name="sun.jnu.encoding" value="UTF-8"/><property name="jnidispatch.path" value="/home/johnson/.cache/JNA/temp/jna5296039277647949838.tmp"/><property name="java.library.path" value="/usr/java/packages/lib/amd64:/usr/lib64:/lib64:/lib:/usr/lib"/><property name="java.specification.name" value="Java Platform API Specification"/><property name="java.class.version" value="52.0"/><property name="sbt.ipcsocket.tmpdir" value="/run/user/1000/.sbt3b84293f/ipcsocket"/><property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/><property name="os.version" value="6.14.0-37-generic"/><property name="swoval.tmpdir" value="/run/user/1000/.sbt3b84293f/swoval"/><property name="user.home" value="/home/johnson"/><property name="user.timezone" value="Asia/Taipei"/><property name="java.awt.printerjob" value="sun.print.PSPrinterJob"/><property name="file.encoding" value="UTF-8"/><property name="java.specification.version" value="1.8"/><property name="java.class.path" value="/home/johnson/.sdkman/candidates/sbt/1.11.7/bin/sbt-launch.jar"/><property name="user.name" value="johnson"/><property name="jline.shutdownhook" value="false"/><property name="java.vm.specification.version" value="1.8"/><property name="sun.java.command" value="/home/johnson/.sdkman/candidates/sbt/1.11.7/bin/sbt-launch.jar project soc test"/><property name="java.home" value="/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre"/><property name="sun.arch.data.model" value="64"/><property name="user.language" value="en"/><property name="java.specification.vendor" value="Oracle Corporation"/><property name="awt.toolkit" value="sun.awt.X11.XToolkit"/><property name="java.vm.info" value="mixed mode"/><property name="java.version" value="1.8.0_472"/><property name="java.ext.dirs" value="/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/ext:/usr/java/packages/lib/ext"/><property name="sun.boot.class.path" value="/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/resources.jar:/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/rt.jar:/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/sunrsasign.jar:/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/jsse.jar:/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/jce.jar:/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/charsets.jar:/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/lib/jfr.jar:/home/johnson/.sdkman/candidates/java/8.0.472-tem/jre/classes"/><property name="java.vendor" value="Temurin"/><property name="java.specification.maintenance.version" value="6"/><property name="file.separator" value="/"/><property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/><property name="sun.io.unicode.encoding" value="UnicodeLittle"/><property name="sun.cpu.endian" value="little"/><property name="sbt.script" value="/home/johnson/.sdkman/candidates/sbt/current/bin/sbt"/><property name="sun.cpu.isalist" value=""/>
+    </properties>
+          <testcase classname="riscv.UARTTest" name="UART Tx should be ready when idle" time="0.147">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Tx should transmit start bit, data, and stop bits" time="0.131">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Tx should not accept data when busy" time="0.099">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Rx should signal valid when byte received" time="0.131">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Rx should receive 0x00 byte correctly" time="0.112">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Rx should receive 0xFF byte correctly" time="0.108">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Buffer should be ready when empty" time="0.1">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Buffer should store and forward one byte" time="0.105">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="UART Buffer should not accept data when full" time="0.096">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="BufferedTx should accept byte into buffer while transmitting" time="0.112">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="BufferedTx should transmit consecutive bytes" time="0.104">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="Uart MMIO Interface should read baud rate from MMIO register" time="0.177">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="Uart MMIO Interface should show TX ready in STATUS register when idle" time="0.153">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="Uart MMIO Interface should transmit byte via TX_DATA register" time="0.148">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="Uart MMIO Interface should set RX valid in STATUS when data received" time="0.194">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="Uart MMIO Interface should generate interrupt on RX and clear on read" time="0.174">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="Uart MMIO Interface should allow manual interrupt control via INTERRUPT register" time="0.142">
+                      
+                    </testcase><testcase classname="riscv.UARTTest" name="Uart TX/RX Loopback should receive transmitted data in loopback" time="0.213">
+                      
+                    </testcase>
+          <system-out><![CDATA[]]></system-out>
+          <system-err><![CDATA[]]></system-err>
+        </testsuite>

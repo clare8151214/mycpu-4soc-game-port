@@ -1,0 +1,7 @@
+soc
+pipeline
+mmioTrap
+singleCycle
+minimal
+common
+root

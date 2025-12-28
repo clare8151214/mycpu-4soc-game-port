@@ -1,0 +1,4 @@
+[0m[[0m[0mdebug[0m] [0m[0mCopy resource mappings: [0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/home/johnson/Desktop/mycpu-4soc/4-soc/src/main/resources/nyancat.asmbin,/home/johnson/Desktop/mycpu-4soc/4-soc/target/scala-2.13/classes/nyancat.asmbin)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/home/johnson/Desktop/mycpu-4soc/4-soc/src/main/resources/uart.asmbin,/home/johnson/Desktop/mycpu-4soc/4-soc/target/scala-2.13/classes/uart.asmbin)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/home/johnson/Desktop/mycpu-4soc/4-soc/src/main/resources/vsrc/TrueDualPortRAM32.v,/home/johnson/Desktop/mycpu-4soc/4-soc/target/scala-2.13/classes/vsrc/TrueDualPortRAM32.v)[0m
