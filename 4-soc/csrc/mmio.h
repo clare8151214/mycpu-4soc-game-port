@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // MyCPU is freely redistributable under the MIT License. See the file
 // "LICENSE" for information on usage and redistribution of this file.
-
+//fix test
 #ifndef MMIO_H
 #define MMIO_H
 
@@ -59,6 +59,10 @@
 #define VGA_WORDS_PER_FRAME (VGA_FRAME_SIZE / VGA_PIXELS_PER_WORD)
 #define VGA_NUM_FRAMES 12
 #define VGA_EXPECTED_ID 0x56474131u /* 'VGA1' */
+
+// --- 鍵盤 MMIO 定義 ---
+#define KEYBOARD_ADDR    0x60000000u
+#define KEYBOARD_DATA    (*(volatile uint32_t *)(KEYBOARD_ADDR))
 
 /* VGA MMIO access helper functions */
 static inline void vga_write32(uint32_t addr, uint32_t val)

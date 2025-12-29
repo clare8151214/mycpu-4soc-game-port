@@ -21,6 +21,9 @@ class VGADisplay
     bool enabled;
 
 public:
+    // 找到 class VGADisplay 的開頭
+    uint32_t last_keycode = 0;  // 新增這行：用來存最近按下的 Keycode
+    // ... 原本的其他變數 ..
     VGADisplay()
         : window(nullptr), renderer(nullptr), texture(nullptr), enabled(false)
     {
@@ -166,6 +169,10 @@ public:
             if (event.type == SDL_QUIT)
                 return false;
             if (event.type == SDL_KEYDOWN) {
+                last_keycode = event.key.keysym.sym;
+                // 在終端機印出按鍵訊息
+                printf("\n[Simulator] Key Pressed! Keycode: %d\n", event.key.keysym.sym);
+                fflush(stdout);
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                     return false;
             }
