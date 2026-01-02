@@ -12,7 +12,7 @@ LD := $(CROSS_COMPILE)ld
 OBJCOPY := $(CROSS_COMPILE)objcopy
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell
+PROGRAMS := nyancat uart shell trex
 BINARIES := $(PROGRAMS:%=%.asmbin)
 
 %.asmbin: %.elf
@@ -37,6 +37,11 @@ shell.asmbin: shell.c mmio.h init.o link.lds
 	$(CC) $(CFLAGS) -c -o shell.o shell.c
 	$(CROSS_COMPILE)ld -o shell.elf -T link.lds $(LDFLAGS) shell.o init.o
 	$(OBJCOPY) -O binary -j .text -j .data shell.elf $@
+
+trex.asmbin: trex.c mmio.h init.o link.lds
+	$(CC) $(CFLAGS) -c -o trex.o trex.c
+	$(CROSS_COMPILE)ld -o trex.elf -T link.lds $(LDFLAGS) trex.o init.o
+	$(OBJCOPY) -O binary -j .text -j .data trex.elf $@
 
 init.o: init.S
 	$(AS) -R $(ASFLAGS) -o $@ $<

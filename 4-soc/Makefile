@@ -77,6 +77,15 @@ check-uart: verilator
 		exit 1; \
 	fi
 
+check-trex: verilator
+	@echo "🔄 Building T-Rex binary..."
+	@$(MAKE) -C csrc trex.asmbin >/dev/null
+	@echo "🦖 Running T-Rex Game..."
+	@echo "   - Press Space in Terminal to jump!"
+	@echo "   - Watch the SDL2 window for graphics"
+	@echo ""
+	cd verilog/verilator/obj_dir && ./VTop -i ../../../csrc/trex.asmbin --terminal
+
 indent:
 	find . -name '*.scala' | xargs scalafmt
 	clang-format -i verilog/verilator/*.cpp verilog/verilator/*.h

@@ -60,9 +60,7 @@
 #define VGA_NUM_FRAMES 12
 #define VGA_EXPECTED_ID 0x56474131u /* 'VGA1' */
 
-// --- 鍵盤 MMIO 定義 ---
-#define KEYBOARD_ADDR    0x60000000u
-#define KEYBOARD_DATA    (*(volatile uint32_t *)(KEYBOARD_ADDR))
+
 
 /* VGA MMIO access helper functions */
 static inline void vga_write32(uint32_t addr, uint32_t val)

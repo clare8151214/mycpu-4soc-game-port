@@ -171,8 +171,8 @@ public:
             if (event.type == SDL_KEYDOWN) {
                 last_keycode = event.key.keysym.sym;
                 // 在終端機印出按鍵訊息
-                printf("\n[Simulator] Key Pressed! Keycode: %d\n", event.key.keysym.sym);
-                fflush(stdout);
+                //printf("\n[Simulator] Key Pressed! Keycode: %d\n", event.key.keysym.sym);
+                //fflush(stdout);
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                     return false;
             }
