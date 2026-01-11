@@ -79,12 +79,21 @@ check-uart: verilator
 
 check-trex: verilator
 	@echo "🔄 Building T-Rex binary..."
-	@$(MAKE) -C csrc trex.asmbin >/dev/null
+	@$(MAKE) -C csrc main.asmbin >/dev/null
 	@echo "🦖 Running T-Rex Game..."
 	@echo "   - Press Space in Terminal to jump!"
 	@echo "   - Watch the SDL2 window for graphics"
 	@echo ""
-	cd verilog/verilator/obj_dir && ./VTop -i ../../../csrc/trex.asmbin --terminal
+	cd verilog/verilator/obj_dir && ./VTop -i ../../../csrc/main.asmbin --terminal
+
+check-vga_test: verilator
+	@echo "🔄 Building T-Rex binary..."
+	@$(MAKE) -C csrc vga_test.asmbin >/dev/null
+	@echo "🦖 Running T-Rex Game..."
+	@echo "   - Press Space in Terminal to jump!"
+	@echo "   - Watch the SDL2 window for graphics"
+	@echo ""
+	cd verilog/verilator/obj_dir && ./VTop -i ../../../csrc/vga_test.asmbin --terminal
 
 indent:
 	find . -name '*.scala' | xargs scalafmt

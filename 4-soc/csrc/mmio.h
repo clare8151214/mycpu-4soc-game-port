@@ -59,7 +59,7 @@
 #define VGA_WORDS_PER_FRAME (VGA_FRAME_SIZE / VGA_PIXELS_PER_WORD)
 #define VGA_NUM_FRAMES 12
 #define VGA_EXPECTED_ID 0x56474131u /* 'VGA1' */
-
+extern uint8_t vga_framebuffer[64 * 64];
 
 
 /* VGA MMIO access helper functions */
