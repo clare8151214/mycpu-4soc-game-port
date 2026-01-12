@@ -361,7 +361,7 @@ int draw_get_color_id(color_t **colors,
                       color_type_t type);
 
 /* Render buffer management functions */
-void draw_init_buffers(void);
+void draw_init_buffers();
 void draw_cleanup_buffers(void);
 void draw_swap_buffers(void);
 void draw_clear_back_buffer(void);
