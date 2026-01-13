@@ -3,7 +3,7 @@ CROSS_COMPILE ?= riscv64-unknown-elf-
 ASFLAGS = -march=rv32i_zicsr -mabi=ilp32
 # Optimization required: -O2 produces large stack frames that overflow in deep call chains
 # RV32I lacks hardware multiply/divide, so -O2 significantly reduces code size
-CFLAGS = -O2 -Wall -fno-builtin -march=rv32i_zicsr -mabi=ilp32
+CFLAGS = -O2 -Wall -fno-builtin -march=rv32i_zicsr -mabi=ilp32 -I . -I trex
 LDFLAGS = --oformat=elf32-littleriscv
 
 AS := $(CROSS_COMPILE)as
@@ -12,7 +12,7 @@ LD := $(CROSS_COMPILE)ld
 OBJCOPY := $(CROSS_COMPILE)objcopy
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell main vga_test
+PROGRAMS := nyancat uart shell trex vga_test
 BINARIES := $(PROGRAMS:%=%.asmbin)
 
 %.asmbin: %.elf
@@ -43,19 +43,23 @@ vga_test.asmbin: vga_test.c mmio.h init.o link.lds
 	$(CROSS_COMPILE)ld -o vga_test.elf -T link.lds $(LDFLAGS) vga_test.o init.o
 	$(OBJCOPY) -O binary -j .text -j .data vga_test.elf $@
 # --- T-Rex 遊戲多檔案編譯規則 ---
-TREX_SOURCES = main.c state.c play.c draw.c menu.c sprite.c tui.c config.c
+TREX_SOURCES = trex/main.c trex/state.c trex/play.c trex/draw.c trex/menu.c trex/sprite.c trex/tui.c trex/config.c
 TREX_OBJS = $(TREX_SOURCES:.c=.o)
 
-# 這裡把原本的 main.asmbin 改成處理所有物件檔
+# 這裡把原本的 trex.asmbin 改成處理所有物件檔
 # --- 修改後的 T-Rex 編譯規則 ---
 # --- 最終修正版的 T-Rex 連結規則 ---
-main.asmbin: $(TREX_OBJS) init.o link.lds
+trex.asmbin: $(TREX_OBJS) init.o link.lds
 	@echo "   LD      Linking T-Rex Project..."
 # 加入 -nodefaultlibs 避免它去找 libc 和 lgloss
-	$(CC) $(CFLAGS) -o main.elf -T link.lds -nostartfiles -nodefaultlibs $(TREX_OBJS) init.o -lgcc
-	$(OBJCOPY) -O binary -j .text -j .data main.elf $@
+	$(CC) $(CFLAGS) -o trex.elf -T link.lds -nostartfiles -nodefaultlibs $(TREX_OBJS) init.o -lgcc
+	$(OBJCOPY) -O binary -j .text -j .data trex.elf $@
 # 這行很重要：告訴 Makefile 怎麼把每個 .c 分別轉成 .o
-%.o: %.c mmio.h trex.h
+%.o: %.c mmio.h
+	@echo "  CC      $@"
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+trex/%.o: trex/%.c mmio.h trex/trex.h trex/private.h trex/tui.h
 	@echo "  CC      $@"
 	$(CC) $(CFLAGS) -c -o $@ $<
 
