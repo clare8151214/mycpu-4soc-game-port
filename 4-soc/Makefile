@@ -86,6 +86,16 @@ check-trex: verilator
 	@echo ""
 	cd verilog/verilator/obj_dir && ./VTop -i ../../../csrc/trex.asmbin --terminal
 
+check-tetris: verilator
+	@echo "🔄 Building Tetris binary..."
+	@$(MAKE) -C csrc tetris.asmbin >/dev/null
+	@echo "🧩 Running Tetris..."
+	@echo "   - Controls: A/D/Left/Right, W rotate, S soft drop, Space hard drop"
+	@echo "   - P pause, Q quit"
+	@echo "   - Watch the SDL2 window for graphics"
+	@echo ""
+	cd verilog/verilator/obj_dir && ./VTop -i ../../../csrc/tetris.asmbin --terminal
+
 check-vga_test: verilator
 	@echo "🔄 Building T-Rex binary..."
 	@$(MAKE) -C csrc vga_test.asmbin >/dev/null
@@ -126,4 +136,4 @@ clean:
 distclean: clean
 	$(RM) -r results
 
-.PHONY: verilator test indent sim check-vga check-uart shell compliance clean distclean
+.PHONY: verilator test indent sim check-vga check-uart check-trex check-tetris check-vga_test shell compliance clean distclean

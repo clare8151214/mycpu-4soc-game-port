@@ -3,7 +3,7 @@ CROSS_COMPILE ?= riscv64-unknown-elf-
 ASFLAGS = -march=rv32i_zicsr -mabi=ilp32
 # Optimization required: -O2 produces large stack frames that overflow in deep call chains
 # RV32I lacks hardware multiply/divide, so -O2 significantly reduces code size
-CFLAGS = -O2 -Wall -fno-builtin -march=rv32i_zicsr -mabi=ilp32 -I . -I trex
+CFLAGS = -O2 -Wall -fno-builtin -march=rv32i_zicsr -mabi=ilp32 -I . -I trex -I tetris
 LDFLAGS = --oformat=elf32-littleriscv
 
 AS := $(CROSS_COMPILE)as
@@ -12,7 +12,7 @@ LD := $(CROSS_COMPILE)ld
 OBJCOPY := $(CROSS_COMPILE)objcopy
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell trex vga_test
+PROGRAMS := nyancat uart shell trex tetris vga_test
 BINARIES := $(PROGRAMS:%=%.asmbin)
 
 %.asmbin: %.elf
@@ -54,12 +54,24 @@ trex.asmbin: $(TREX_OBJS) init.o link.lds
 # 加入 -nodefaultlibs 避免它去找 libc 和 lgloss
 	$(CC) $(CFLAGS) -o trex.elf -T link.lds -nostartfiles -nodefaultlibs $(TREX_OBJS) init.o -lgcc
 	$(OBJCOPY) -O binary -j .text -j .data trex.elf $@
-# 這行很重要：告訴 Makefile 怎麼把每個 .c 分別轉成 .o
+
+TETRIS_SOURCES = tetris/tetris.c tetris/tetris_draw.c tetris/tetris_grid.c tetris/tetris_shape.c
+TETRIS_OBJS = $(TETRIS_SOURCES:.c=.o)
+
+tetris.asmbin: $(TETRIS_OBJS) init.o link.lds
+	@echo "   LD      Linking Tetris Project..."
+	$(CC) $(CFLAGS) -o tetris.elf -T link.lds -nostartfiles -nodefaultlibs $(TETRIS_OBJS) init.o -lgcc
+	$(OBJCOPY) -O binary -j .text -j .data tetris.elf $@
+
 %.o: %.c mmio.h
 	@echo "  CC      $@"
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 trex/%.o: trex/%.c mmio.h trex/trex.h trex/private.h trex/tui.h
+	@echo "  CC      $@"
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+tetris/%.o: tetris/%.c mmio.h tetris/tetris.h
 	@echo "  CC      $@"
 	$(CC) $(CFLAGS) -c -o $@ $<
 
