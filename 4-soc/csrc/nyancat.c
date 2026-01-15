@@ -280,7 +280,7 @@ int main(void)
     // Animate: cycle through frames infinitely
     for (uint32_t frame = 0;;) {
         vga_write32(VGA_ADDR_CTRL, (frame << 4) | 0x01);
-        delay(50000);
+        delay(1000);
         frame = (frame + 1 < FRAME_COUNT) ? frame + 1 : 0;
     }
 #else
@@ -291,7 +291,8 @@ int main(void)
     // Animate: cycle through frames infinitely
     for (uint32_t frame = 0;;) {
         vga_write32(VGA_ADDR_CTRL, (frame << 4) | 0x01);
-        delay(50000);
+
+        delay(1000);
         frame = (frame + 1 < FRAME_COUNT) ? frame + 1 : 0;
     }
 #endif

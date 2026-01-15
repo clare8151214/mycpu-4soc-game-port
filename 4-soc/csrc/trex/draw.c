@@ -133,7 +133,6 @@ static inline void delay(uint32_t cycles)
 }
 
 #define VGA_STAT_SAFE 0x01
-#define VGA_STAT_BUSY 0x02
 void run_trex(void) {
     int dino_x = 5;
     int dino_y = 50;      // 初始高度（踩在地上）
@@ -177,7 +176,7 @@ void run_trex(void) {
         }else{
             place_dino(dino_x, dino_y, 1, (shap % 2));
         }
-        delay(2000); 
+        delay(2500); 
 
 
         // VGA 上傳
