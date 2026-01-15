@@ -124,6 +124,14 @@ void place_dino_setdown(int x, int y, uint8_t color,int shap) {
     }
 }
 
+// Simple delay function (~20Hz frame rate)
+// Use inline assembly to prevent compiler optimization
+static inline void delay(uint32_t cycles)
+{
+    for (uint32_t i = 0; i < cycles; i++)
+        __asm__ volatile("nop");
+}
+
 #define VGA_STAT_SAFE 0x01
 #define VGA_STAT_BUSY 0x02
 void run_trex(void) {
@@ -134,7 +142,7 @@ void run_trex(void) {
     int current_frame = 0;
     const int GROUND_Y = 50; // 地平線的基準 Y 座標
     const int JUMP_IMPULSE = -6; // 跳躍的力道（負值代表向上）
-    const int GRAVITY = 1;      // 重力加速度
+    const int GRAVITY = 1;      
     int setdown_times=0;
     int cactus_x = 64; // 從螢幕最右邊外面一點點開始
     const int cactus_y = 54; // 確保它踩在地平線上 (64x64 的底部)
@@ -169,20 +177,18 @@ void run_trex(void) {
         }else{
             place_dino(dino_x, dino_y, 1, (shap % 2));
         }
-        
+        delay(2000); 
 
 
         // VGA 上傳
-        current_frame = 1 - current_frame;
-        *VGA_UPLOAD_ADDR = (current_frame << 16);
-        for (int i = 0; i < 512; i++) {
+        //current_frame = 1 - current_frame;
+        *VGA_UPLOAD_ADDR = (current_frame << 16)|1792;
+        for (int i = 224; i < 464; i++) {
             *VGA_STREAM_DATA = vga_pack8_pixels(&vga_framebuffer[i * 8]);
         }
         while (!((*VGA_STATUS) & VGA_STAT_SAFE));
         *VGA_CTRL = (current_frame << 4) | 0x01;
-
-        // --- 4. 動畫與延遲 ---
-        //for (volatile int delay = 0; delay < 2000; delay++);
+       
         shap++;
         
     }
@@ -229,7 +235,10 @@ void draw_init_buffers()
 
     // B. 畫地平線 (放在 y = 58 的位置)
     draw_horizon(2, 58); 
-    
+    for (int i = 0; i < 512; i++) {
+        *VGA_STREAM_DATA = vga_pack8_pixels(&vga_framebuffer[i * 8]);
+        
+    }
     //render_buffer.needs_refresh = true;
     //has_dirty_region = false;
     
