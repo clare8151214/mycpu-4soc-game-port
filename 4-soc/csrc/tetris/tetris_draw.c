@@ -1,11 +1,15 @@
 #include "tetris.h"
 #include "mmio.h"
 
-#define VGA_STAT_SAFE 0x01
-#define VGA_STAT_BUSY 0x02
+// VGA STATUS register bits (from VGA.scala):
+//   Bit 0: in_vblank
+//   Bit 1: safe_to_swap (same as vblank)
+#define VGA_STAT_VBLANK 0x01
+#define VGA_STAT_SAFE   0x01  // Use bit 0 like trex does
 
-// Single back buffer; VGA controller uses double buffering on upload.
+// Software framebuffer for drawing
 static uint8_t framebuffer[VGA_FRAME_SIZE];
+// Double buffering: alternate between frame 0 and 1
 static uint8_t current_frame = 0;
 
 static void fb_clear(void)
@@ -96,19 +100,34 @@ static void fb_number(int x, int y, uint32_t num, uint8_t color)
 
 void draw_init(void)
 {
-    vga_write32(VGA_ADDR_PALETTE(COLOR_BLACK), 0x00);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_CYAN), 0x2F);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_YELLOW), 0x3C);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_PURPLE), 0x32);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_GREEN), 0x0C);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_RED), 0x30);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_BLUE), 0x03);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_ORANGE), 0x34);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_GRAY), 0x15);
-    vga_write32(VGA_ADDR_PALETTE(COLOR_WHITE), 0x3F);
-    vga_write32(VGA_ADDR_CTRL, 0x01);
+    // Set up palette colors (6-bit RRGGBB format)
+    *VGA_PALETTE(COLOR_BLACK)  = 0x00;  // Black
+    *VGA_PALETTE(COLOR_CYAN)   = 0x2F;  // Cyan
+    *VGA_PALETTE(COLOR_YELLOW) = 0x3C;  // Yellow
+    *VGA_PALETTE(COLOR_PURPLE) = 0x32;  // Purple
+    *VGA_PALETTE(COLOR_GREEN)  = 0x0C;  // Green
+    *VGA_PALETTE(COLOR_RED)    = 0x30;  // Red
+    *VGA_PALETTE(COLOR_BLUE)   = 0x03;  // Blue
+    *VGA_PALETTE(COLOR_ORANGE) = 0x34;  // Orange
+    *VGA_PALETTE(COLOR_GRAY)   = 0x15;  // Gray
+    *VGA_PALETTE(COLOR_WHITE)  = 0x3F;  // White
+    
+    // Clear framebuffer
     fb_clear();
+    
+    // Draw initial test pattern to trigger VGA window
+    fb_rect(0, 0, 64, 2, COLOR_RED);
+    
+    // Upload to frame 0 first
     current_frame = 0;
+    *VGA_UPLOAD_ADDR = 0;
+    for (int i = 0; i < 512; i++) {
+        *VGA_STREAM_DATA = vga_pack8_pixels(&framebuffer[i * 8]);
+    }
+    *VGA_CTRL = 0x01;
+    
+    // Now clear for game - game_render will draw and upload
+    fb_clear();
 }
 
 void draw_clear(void)
@@ -230,11 +249,19 @@ void draw_game_over(void)
 
 void draw_swap_buffers(void)
 {
-    // Match trex: upload frame 0 and request a display swap.
-    vga_write32(VGA_ADDR_UPLOAD_ADDR, 0);
-    for (int i = 0; i < VGA_FRAME_SIZE / 8; i++) {
-        vga_write32(VGA_ADDR_STREAM_DATA,
-                    vga_pack8_pixels(&framebuffer[i * 8]));
+    // Simplified approach matching trex exactly:
+    // Toggle frame
+    current_frame = 1 - current_frame;
+    
+    // Set upload address (frame number in upper bits)
+    *VGA_UPLOAD_ADDR = (current_frame << 16);
+    
+    // Upload all 512 words (4096 pixels)
+    for (int i = 0; i < 512; i++) {
+        *VGA_STREAM_DATA = vga_pack8_pixels(&framebuffer[i * 8]);
     }
-    vga_write32(VGA_ADDR_CTRL, 0x05); // Enable display AND request swap
+    
+    // Wait for vblank then switch display
+    while (!((*VGA_STATUS) & VGA_STAT_SAFE));
+    *VGA_CTRL = (current_frame << 4) | 0x01;
 }

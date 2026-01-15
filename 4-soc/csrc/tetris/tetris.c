@@ -16,7 +16,7 @@ static volatile uint32_t soft_tick = 0;
 
 uint32_t get_tick(void)
 {
-    return soft_tick++;
+    return soft_tick;  // 只讀取，不增加
 }
 
 void delay_ms(uint32_t ms)
@@ -108,13 +108,14 @@ static game_state_t game_state;
 static uint32_t last_drop_time;
 static uint32_t drop_interval;
 
-// NES 風格的下落速度 (毫秒)
+// 下落速度 (以 frame 數為單位，假設約 60fps)
+// Level 1: 約 48 frames (~0.8秒), Level 10: 約 6 frames (~0.1秒)
 static const uint16_t LEVEL_SPEEDS[21] = {
-    800, 717, 633, 550, 467,  // 1-5
-    383, 300, 217, 133, 100,  // 6-10
-    83, 83, 83, 67, 67,       // 11-15
-    67, 50, 50, 50, 33,       // 16-20
-    33                         // 20+
+    48, 43, 38, 33, 28,   // 1-5
+    23, 18, 13, 8, 6,     // 6-10
+    5, 5, 5, 4, 4,        // 11-15
+    4, 3, 3, 3, 2,        // 16-20
+    2                      // 20+
 };
 
 static uint32_t get_drop_interval(uint8_t level)
@@ -320,21 +321,86 @@ int main(void)
 {
     uart_puts("\r\n=== TETRIS ===\r\n");
 
-    game_init();
-    uart_puts("Controls: A/D=move, W=rotate, S=drop, Space=hard drop\r\n");
-
-    game_loop();
+    // 只初始化一次
+    draw_init();
+    grid_init(&grid);
+    my_srand(12345);
     
-    // 遊戲結束後重新開始
+    uint8_t shape = shape_random();
+    grid_block_spawn(&grid, &current_block, shape);
+    
+    shape = shape_random();
+    grid_block_spawn(&grid, &next_block, shape);
+    
+    game_state = GAME_PLAYING;
+    soft_tick = 0;
+    last_drop_time = 0;
+    drop_interval = 48;  // 固定速度
+    
+    uart_puts("Game ready!\r\n");
+    uart_puts("Starting game loop...\r\n");
+
+    // 簡化的主迴圈
     while (1) {
+        // 畫面
+        draw_clear();
+        draw_border();
+        draw_grid(&grid);
+        draw_block(&current_block);
+        draw_preview(next_block.shape);
+        draw_score(grid.score, grid.lines_cleared, grid.level);
+        draw_swap_buffers();
+        
+        // 輸入處理
         input_t input = input_poll();
-        if (input == INPUT_HARD_DROP || input == INPUT_ROTATE) {
-            game_init();
-            game_loop();
+        if (input == INPUT_LEFT) {
+            grid_block_move(&grid, &current_block, DIR_LEFT);
+        } else if (input == INPUT_RIGHT) {
+            grid_block_move(&grid, &current_block, DIR_RIGHT);
+        } else if (input == INPUT_ROTATE) {
+            grid_block_rotate(&grid, &current_block, 1);
+        } else if (input == INPUT_SOFT_DROP) {
+            if (!grid_block_move(&grid, &current_block, DIR_DOWN)) {
+                grid_block_add(&grid, &current_block);
+                grid_clear_lines(&grid);
+                current_block = next_block;
+                grid_block_spawn(&grid, &current_block, current_block.shape);
+                shape = shape_random();
+                grid_block_spawn(&grid, &next_block, shape);
+            }
+        } else if (input == INPUT_HARD_DROP) {
+            grid_block_drop(&grid, &current_block);
+            grid_block_add(&grid, &current_block);
+            grid_clear_lines(&grid);
+            current_block = next_block;
+            grid_block_spawn(&grid, &current_block, current_block.shape);
+            shape = shape_random();
+            grid_block_spawn(&grid, &next_block, shape);
+        } else if (input == INPUT_QUIT) {
+            break;
         }
-        game_render();
-        delay_ms(100);
+        
+        // 自動下落
+        soft_tick++;
+        if (soft_tick - last_drop_time >= drop_interval) {
+            if (!grid_block_move(&grid, &current_block, DIR_DOWN)) {
+                grid_block_add(&grid, &current_block);
+                grid_clear_lines(&grid);
+                current_block = next_block;
+                grid_block_spawn(&grid, &current_block, current_block.shape);
+                shape = shape_random();
+                grid_block_spawn(&grid, &next_block, shape);
+                
+                // Game over check
+                if (grid_block_collides(&grid, &current_block)) {
+                    uart_puts("Game Over!\r\n");
+                    break;
+                }
+            }
+            last_drop_time = soft_tick;
+        }
     }
     
+    uart_puts("Exiting...\r\n");
     return 0;
 }
