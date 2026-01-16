@@ -313,4 +313,33 @@ uint32_t get_tick(void);
 /** 毫秒級延遲 */
 void delay_ms(uint32_t ms);
 
+/**
+ * my_mod - 取模運算
+ *
+ * @param val: 被除數
+ * @param divisor: 除數 (必須 > 0)
+ * @return val % divisor
+ *
+ * 直接使用 % 運算子，編譯器會呼叫 libgcc 中的 __umodsi3。
+ * libgcc 使用高效的二進制除法算法 (O(log n))。
+ */
+static inline uint32_t my_mod(uint32_t val, uint32_t divisor)
+{
+    return val % divisor;
+}
+
+/**
+ * my_div - 整數除法
+ *
+ * @param val: 被除數
+ * @param divisor: 除數 (必須 > 0)
+ * @return val / divisor
+ *
+ * 直接使用 / 運算子，編譯器會呼叫 libgcc 中的 __udivsi3。
+ */
+static inline uint32_t my_div(uint32_t val, uint32_t divisor)
+{
+    return val / divisor;
+}
+
 #endif

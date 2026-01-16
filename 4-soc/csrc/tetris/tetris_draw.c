@@ -197,9 +197,10 @@ static void fb_number(int x, int y, uint32_t num, uint8_t color)
     }
 
     /* 拆解數字的各位 (從低位到高位) */
+    /* 使用 my_mod 和 my_div 替代 % 和 / (RV32I 無除法指令) */
     while (num > 0 && count < 10) {
-        digits[count++] = num % 10;
-        num /= 10;
+        digits[count++] = (int)my_mod(num, 10);
+        num = my_div(num, 10);
     }
 
     /* 從高位到低位繪製 */
@@ -299,14 +300,14 @@ void draw_border(void)
  */
 void draw_grid(const grid_t *g)
 {
-    for (int y = 0; y < g->height; y++) {
-        for (int x = 0; x < g->width; x++) {
+    for (int y = 0; y < GRID_HEIGHT; y++) {
+        for (int x = 0; x < GRID_WIDTH; x++) {
             /* 檢查該格子是否被佔用 */
             if (g->rows[y] & (1u << x)) {
                 /* 計算螢幕座標 */
                 int sx = GRID_OFFSET_X + x * BLOCK_SIZE;
                 /* Y 軸翻轉：遊戲中 y=0 在底部，螢幕 y=0 在頂部 */
-                int sy = GRID_OFFSET_Y + (g->height - 1 - y) * BLOCK_SIZE;
+                int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - y) * BLOCK_SIZE;
 
                 fb_rect(sx, sy, BLOCK_SIZE, BLOCK_SIZE, g->colors[y][x]);
             }

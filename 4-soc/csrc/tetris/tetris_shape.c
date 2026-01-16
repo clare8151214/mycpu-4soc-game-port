@@ -169,30 +169,49 @@ static uint8_t bag[7];
 /** bag_pos - 目前取到袋子中的第幾個，>=7 表示需要重新打亂 */
 static uint8_t bag_pos = 7;
 
+/* my_mod 函式已移至 tetris.h 作為 inline 函式 */
+
 /**
  * shuffle_bag - 打亂袋子中的方塊順序
  *
  * 使用 Fisher-Yates 洗牌演算法，確保每種排列出現機率相等。
  */
+/* 內部 UART 輸出 */
+static void sb_putc(char c)
+{
+    volatile uint32_t *uart_status = (volatile uint32_t *)0x40000000;
+    volatile uint32_t *uart_send = (volatile uint32_t *)0x40000010;
+    while (!(*uart_status & 0x01)) ;
+    *uart_send = (uint32_t)c;
+}
+
 static void shuffle_bag(void)
 {
+    sb_putc('A');  /* 開始初始化 */
+
     /* 初始化袋子：0, 1, 2, 3, 4, 5, 6 */
     for (int i = 0; i < 7; i++) {
         bag[i] = i;
     }
 
+    sb_putc('B');  /* 初始化完成，開始洗牌 */
+
     /* Fisher-Yates 洗牌：從後往前，每個位置隨機與前面的位置交換 */
     for (int i = 6; i > 0; i--) {
-        uint8_t j = my_rand() % (i + 1);  /* 隨機選擇 0 到 i 之間的位置 */
+        sb_putc('0' + i);  /* 顯示當前 i */
+        uint32_t rnd = my_rand();
+        sb_putc('r');
+        uint8_t j = (uint8_t)my_mod(rnd, (uint32_t)(i + 1));
+        sb_putc('m');
         if (i != j) {
-            /* 交換 bag[i] 和 bag[j] */
             uint8_t tmp = bag[i];
             bag[i] = bag[j];
             bag[j] = tmp;
         }
     }
 
-    bag_pos = 0;  /* 重設取出位置 */
+    sb_putc('C');  /* 洗牌完成 */
+    bag_pos = 0;
 }
 
 /*============================================================================
@@ -214,7 +233,7 @@ void shape_get_cells(uint8_t shape, uint8_t rot, int8_t cells[4][2])
     if (shape >= NUM_SHAPES) {
         shape = 0;
     }
-    rot = rot % 4;
+    rot = (uint8_t)my_mod(rot, 4);
 
     /* 複製座標資料 */
     for (int i = 0; i < 4; i++) {
@@ -235,7 +254,7 @@ uint8_t shape_get_width(uint8_t shape, uint8_t rot)
     if (shape >= NUM_SHAPES) {
         return 2;  /* 預設值 */
     }
-    return SHAPE_DIMENSIONS[shape][rot % 4][0];
+    return SHAPE_DIMENSIONS[shape][my_mod(rot, 4)][0];
 }
 
 /**
@@ -250,7 +269,7 @@ uint8_t shape_get_height(uint8_t shape, uint8_t rot)
     if (shape >= NUM_SHAPES) {
         return 2;  /* 預設值 */
     }
-    return SHAPE_DIMENSIONS[shape][rot % 4][1];
+    return SHAPE_DIMENSIONS[shape][my_mod(rot, 4)][1];
 }
 
 /**

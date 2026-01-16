@@ -531,7 +531,7 @@ void game_loop(void)
             game_update();  // 更新遊戲邏輯
 
             // 額外的下落機制 (每 50000 次迴圈強制下落一次)
-            if ((++loop_counter % 50000) == 0) {
+            if (my_mod(++loop_counter, 50000) == 0) {
                 if (!grid_block_move(&grid, &current_block, DIR_DOWN)) {
                     lock_block_and_spawn_next();
                 }
@@ -575,6 +575,9 @@ void game_loop(void)
  */
 int main(void)
 {
+    // 初始化 UART（啟用 RX 中斷，這樣才能接收鍵盤輸入）
+    *UART_INTERRUPT = 1;
+
     uart_puts("\r\n=== TETRIS ===\r\n");
 
     /*--------------------------------------------
@@ -582,7 +585,7 @@ int main(void)
      *--------------------------------------------*/
     draw_init();                    // 初始化 VGA 繪圖系統
     grid_init(&grid);               // 初始化遊戲網格
-    my_srand(12345);                // 初始化亂數種子
+    my_srand(soft_tick ? soft_tick : 12345);                // 初始化亂數種子
 
     // 生成第一個方塊
     uint8_t shape = shape_random();
@@ -602,7 +605,7 @@ int main(void)
     game_state = GAME_PLAYING;
     soft_tick = 0;
     last_drop_time = 0;
-    drop_interval = 10;             // 下落間隔 (tick 數)
+    drop_interval = 5;             // 下落間隔 (tick 數)
 
     uart_puts("Game ready!\r\n");
     uart_puts("Starting game loop...\r\n");
@@ -680,22 +683,15 @@ int main(void)
 
         // 檢查是否到達下落時間
         if (soft_tick - last_drop_time >= drop_interval) {
-            uart_try_putc('D');  // drop
             if (!grid_block_move(&grid, &current_block, DIR_DOWN)) {
                 // 無法下移，鎖定方塊
-                uart_try_putc('K');  // lock
                 grid_block_add(&grid, &current_block);
-                uart_try_putc('A');  // add ok
-
                 grid_clear_lines(&grid);
-                uart_try_putc('C');  // clear ok
 
                 // 切換到下一個方塊
                 current_block = next_block;
-                uart_try_putc('N');  // next ok
                 grid_block_spawn(&grid, &current_block, current_block.shape);
                 current_block.color = COLOR_RED;
-                uart_try_putc('S');  // spawn ok
 
                 // 生成新的預覽方塊
                 shape = shape_random();

@@ -123,7 +123,7 @@ void grid_clear(grid_t *g)
 bool grid_cell_occupied(const grid_t *g, int x, int y)
 {
     /* 超出邊界視為已佔用 */
-    if (x < 0 || x >= g->width || y < 0 || y >= g->height) {
+    if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
         return true;
     }
     /* 檢查該位置的 bit 是否被設定 */
@@ -144,7 +144,7 @@ bool grid_cell_occupied(const grid_t *g, int x, int y)
 void grid_set_cell(grid_t *g, int x, int y, uint8_t color)
 {
     /* 邊界檢查 */
-    if (x < 0 || x >= g->width || y < 0 || y >= g->height) {
+    if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
         return;
     }
 
@@ -169,7 +169,7 @@ void grid_set_cell(grid_t *g, int x, int y, uint8_t color)
  */
 void grid_clear_cell(grid_t *g, int x, int y)
 {
-    if (x < 0 || x >= g->width || y < 0 || y >= g->height) {
+    if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
         return;
     }
     g->rows[y] &= ~(1u << x);     /* 清除對應的 bit */
@@ -189,12 +189,12 @@ void grid_clear_cell(grid_t *g, int x, int y)
  */
 bool grid_row_full(const grid_t *g, int y)
 {
-    if (y < 0 || y >= g->height) {
+    if (y < 0 || y >= GRID_HEIGHT) {
         return false;
     }
 
     /* 建立一個所有位都是 1 的遮罩 (根據網格寬度) */
-    uint16_t full_mask = (1u << g->width) - 1;  /* 例如 10 格寬 = 0b1111111111 */
+    uint16_t full_mask = (1u << GRID_WIDTH) - 1;  /* 例如 10 格寬 = 0b1111111111 */
 
     /* 檢查該行是否所有位都被設定 */
     return (g->rows[y] & full_mask) == full_mask;
@@ -212,17 +212,17 @@ bool grid_row_full(const grid_t *g, int y)
 static void remove_row(grid_t *g, int row)
 {
     /* 從被刪除的行開始，每行的資料來自上一行 */
-    for (int y = row; y < g->height - 1; y++) {
+    for (int y = row; y < GRID_HEIGHT - 1; y++) {
         g->rows[y] = g->rows[y + 1];  /* 位元陣列下移 */
-        for (int x = 0; x < g->width; x++) {
+        for (int x = 0; x < GRID_WIDTH; x++) {
             g->colors[y][x] = g->colors[y + 1][x];  /* 顏色下移 */
         }
     }
 
     /* 頂部新增空行 */
-    g->rows[g->height - 1] = 0;
-    for (int x = 0; x < g->width; x++) {
-        g->colors[g->height - 1][x] = COLOR_BLACK;
+    g->rows[GRID_HEIGHT - 1] = 0;
+    for (int x = 0; x < GRID_WIDTH; x++) {
+        g->colors[GRID_HEIGHT - 1][x] = COLOR_BLACK;
     }
 }
 
@@ -236,10 +236,10 @@ static void remove_row(grid_t *g, int row)
  */
 static void recalc_relief(grid_t *g)
 {
-    for (int x = 0; x < g->width; x++) {
+    for (int x = 0; x < GRID_WIDTH; x++) {
         g->relief[x] = -1;  /* 預設沒有方塊 */
         /* 從上往下找第一個有方塊的位置 */
-        for (int y = g->height - 1; y >= 0; y--) {
+        for (int y = GRID_HEIGHT - 1; y >= 0; y--) {
             if (g->rows[y] & (1u << x)) {
                 g->relief[x] = y;
                 break;
@@ -272,7 +272,7 @@ int grid_clear_lines(grid_t *g)
     int y = 0;
 
     /* 從底部往上掃描 */
-    while (y < g->height) {
+    while (y < GRID_HEIGHT) {
         if (grid_row_full(g, y)) {
             remove_row(g, y);
             cleared++;
@@ -336,12 +336,12 @@ bool grid_block_collides(const grid_t *g, const block_t *b)
         int gy = b->y + cells[i][1];
 
         /* 檢查左、右、下邊界 */
-        if (gx < 0 || gx >= g->width || gy < 0) {
+        if (gx < 0 || gx >= GRID_WIDTH || gy < 0) {
             return true;
         }
 
         /* 超出上邊界不算碰撞 */
-        if (gy >= g->height) {
+        if (gy >= GRID_HEIGHT) {
             continue;
         }
 
@@ -368,7 +368,6 @@ bool grid_block_collides(const grid_t *g, const block_t *b)
  */
 void grid_block_add(grid_t *g, const block_t *b)
 {
-    uart_try_putc('a');
     int8_t cells[4][2];
     shape_get_cells(b->shape, b->rot, cells);
 
@@ -377,11 +376,10 @@ void grid_block_add(grid_t *g, const block_t *b)
         int gy = b->y + cells[i][1];
 
         /* 只設定在有效範圍內的格子 */
-        if (gx >= 0 && gx < g->width && gy >= 0 && gy < g->height) {
+        if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
             grid_set_cell(g, gx, gy, b->color);
         }
     }
-    uart_try_putc('b');
 }
 
 /**
@@ -469,7 +467,7 @@ bool grid_block_rotate(const grid_t *g, block_t *b, int amount)
     uint8_t num_rots = shape_num_rotations(b->shape);
 
     /* 計算新的旋轉狀態 */
-    b->rot = (b->rot + amount + num_rots) % num_rots;
+    b->rot = (uint8_t)my_mod((uint32_t)(b->rot + amount + num_rots), (uint32_t)num_rots);
 
     /* 檢查旋轉後是否碰撞 */
     if (grid_block_collides(g, b)) {
@@ -512,8 +510,8 @@ void grid_block_spawn(const grid_t *g, block_t *b, uint8_t shape)
 
     /* 水平置中 */
     uint8_t width = shape_get_width(shape, 0);
-    b->x = (g->width - width) / 2;
+    b->x = (GRID_WIDTH - width) / 2;
 
     /* 垂直位置：讓方塊剛好在網格頂部 */
-    b->y = g->height - shape_get_height(shape, 0);
+    b->y = GRID_HEIGHT - shape_get_height(shape, 0);
 }
