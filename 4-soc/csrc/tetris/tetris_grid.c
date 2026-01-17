@@ -311,6 +311,9 @@ int grid_clear_lines(grid_t *g)
  * 方塊碰撞檢測
  *============================================================================*/
 
+/* 直接訪問 SHAPES 表格 */
+extern const int8_t SHAPES[7][4][4][2];
+
 /**
  * grid_block_collides - 檢查方塊是否發生碰撞
  *
@@ -326,30 +329,44 @@ int grid_clear_lines(grid_t *g)
  *
  * 注意：超出上邊界 (y >= height) 不算碰撞，這允許方塊從上方進入。
  */
+/* 檢查單個格子是否碰撞 */
+static inline bool check_cell_collision(const grid_t *g, int gx, int gy)
+{
+    /* 檢查左、右、下邊界 */
+    if (gx < 0 || gx >= GRID_WIDTH || gy < 0) {
+        return true;
+    }
+    /* 超出上邊界不算碰撞 */
+    if (gy >= GRID_HEIGHT) {
+        return false;
+    }
+    /* 檢查是否與已放置的方塊重疊 */
+    if (g->rows[gy] & (1u << gx)) {
+        return true;
+    }
+    return false;
+}
+
 bool grid_block_collides(const grid_t *g, const block_t *b)
 {
-    int8_t cells[4][2];
-    shape_get_cells(b->shape, b->rot, cells);  /* 取得方塊的 4 個格子座標 */
+    uint8_t shape = b->shape;
+    uint8_t rot = b->rot & 0x03;
+    if (shape >= 7) shape = 0;
 
-    for (int i = 0; i < MAX_BLOCK_LEN; i++) {
-        int gx = b->x + cells[i][0];  /* 計算絕對座標 */
-        int gy = b->y + cells[i][1];
+    /* 直接從 SHAPES 讀取座標 */
+    int gx0 = b->x + SHAPES[shape][rot][0][0];
+    int gy0 = b->y + SHAPES[shape][rot][0][1];
+    int gx1 = b->x + SHAPES[shape][rot][1][0];
+    int gy1 = b->y + SHAPES[shape][rot][1][1];
+    int gx2 = b->x + SHAPES[shape][rot][2][0];
+    int gy2 = b->y + SHAPES[shape][rot][2][1];
+    int gx3 = b->x + SHAPES[shape][rot][3][0];
+    int gy3 = b->y + SHAPES[shape][rot][3][1];
 
-        /* 檢查左、右、下邊界 */
-        if (gx < 0 || gx >= GRID_WIDTH || gy < 0) {
-            return true;
-        }
-
-        /* 超出上邊界不算碰撞 */
-        if (gy >= GRID_HEIGHT) {
-            continue;
-        }
-
-        /* 檢查是否與已放置的方塊重疊 */
-        if (g->rows[gy] & (1u << gx)) {
-            return true;
-        }
-    }
+    if (check_cell_collision(g, gx0, gy0)) return true;
+    if (check_cell_collision(g, gx1, gy1)) return true;
+    if (check_cell_collision(g, gx2, gy2)) return true;
+    if (check_cell_collision(g, gx3, gy3)) return true;
 
     return false;
 }
@@ -366,19 +383,83 @@ bool grid_block_collides(const grid_t *g, const block_t *b)
  *
  * 當方塊落到底部或碰到其他方塊時，呼叫此函式將方塊「凍結」到網格中。
  */
+/* UART debug helpers for grid_block_add */
+static void gba_putc(char c)
+{
+    volatile uint32_t *uart_status = (volatile uint32_t *)0x40000000;
+    volatile uint32_t *uart_send = (volatile uint32_t *)0x40000010;
+    while (!(*uart_status & 0x01)) ;
+    *uart_send = (uint32_t)c;
+}
+
+static void gba_put_hex8(uint8_t v)
+{
+    static const char hex[] = "0123456789ABCDEF";
+    gba_putc(hex[(v >> 4) & 0xF]);
+    gba_putc(hex[v & 0xF]);
+}
+
+static void gba_put_int(int v)
+{
+    char buf[12];
+    int i = 0;
+    int neg = 0;
+
+    if (v < 0) {
+        neg = 1;
+        v = -v;
+    }
+
+    /* 處理 0 的特殊情況 */
+    if (v == 0) {
+        gba_putc('0');
+        return;
+    }
+
+    /* 反向填充數字 */
+    while (v > 0) {
+        buf[i++] = '0' + (v % 10);
+        v = v / 10;
+    }
+
+    if (neg) {
+        gba_putc('-');
+    }
+
+    /* 反向輸出 */
+    while (i > 0) {
+        gba_putc(buf[--i]);
+    }
+}
+
 void grid_block_add(grid_t *g, const block_t *b)
 {
-    int8_t cells[4][2];
-    shape_get_cells(b->shape, b->rot, cells);
+    uint8_t shape = b->shape;
+    uint8_t rot = b->rot & 0x03;
+    if (shape >= 7) shape = 0;
 
-    for (int i = 0; i < MAX_BLOCK_LEN; i++) {
-        int gx = b->x + cells[i][0];
-        int gy = b->y + cells[i][1];
+    /* 直接從 SHAPES 讀取座標並計算絕對位置 */
+    int gx0 = b->x + SHAPES[shape][rot][0][0];
+    int gy0 = b->y + SHAPES[shape][rot][0][1];
+    int gx1 = b->x + SHAPES[shape][rot][1][0];
+    int gy1 = b->y + SHAPES[shape][rot][1][1];
+    int gx2 = b->x + SHAPES[shape][rot][2][0];
+    int gy2 = b->y + SHAPES[shape][rot][2][1];
+    int gx3 = b->x + SHAPES[shape][rot][3][0];
+    int gy3 = b->y + SHAPES[shape][rot][3][1];
 
-        /* 只設定在有效範圍內的格子 */
-        if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
-            grid_set_cell(g, gx, gy, b->color);
-        }
+    /* 設定格子 */
+    if (gx0 >= 0 && gx0 < GRID_WIDTH && gy0 >= 0 && gy0 < GRID_HEIGHT) {
+        grid_set_cell(g, gx0, gy0, b->color);
+    }
+    if (gx1 >= 0 && gx1 < GRID_WIDTH && gy1 >= 0 && gy1 < GRID_HEIGHT) {
+        grid_set_cell(g, gx1, gy1, b->color);
+    }
+    if (gx2 >= 0 && gx2 < GRID_WIDTH && gy2 >= 0 && gy2 < GRID_HEIGHT) {
+        grid_set_cell(g, gx2, gy2, b->color);
+    }
+    if (gx3 >= 0 && gx3 < GRID_WIDTH && gy3 >= 0 && gy3 < GRID_HEIGHT) {
+        grid_set_cell(g, gx3, gy3, b->color);
     }
 }
 

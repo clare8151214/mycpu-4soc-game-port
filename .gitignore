@@ -1,0 +1,10 @@
+4-soc/csrc/tetris/README.md
+4-soc/csrc/tetris.asmbin
+4-soc/csrc/tetris.elf
+4-soc/csrc/tetris/tetris_draw.o
+4-soc/csrc/tetris/tetris_grid.o
+4-soc/csrc/tetris/tetris_shape.o
+4-soc/csrc/tetris/tetris.o
+4-soc/verilog/verilator/obj_dir/VTop__pch.h.fast.gch
+4-soc/verilog/verilator/obj_dir/VTop__pch.h.slow.gch
+4-soc/verilog/verilator/obj_dir/VTop__verFiles.dat

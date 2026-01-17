@@ -224,17 +224,18 @@ static void fb_number(int x, int y, uint32_t num, uint8_t color)
  */
 void draw_init(void)
 {
-    /* 設定調色盤顏色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_BLACK),  0x00);  /* 黑色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_CYAN),   0x2F);  /* 青色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_YELLOW), 0x3C);  /* 黃色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_PURPLE), 0x32);  /* 紫色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_GREEN),  0x0C);  /* 綠色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_RED),    0x30);  /* 紅色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_BLUE),   0x03);  /* 藍色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_ORANGE), 0x34);  /* 橘色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_GRAY),   0x15);  /* 灰色 */
-    vga_write32(VGA_ADDR_PALETTE(COLOR_WHITE),  0x3F);  /* 白色 */
+    /* 設定調色盤顏色 (6-bit RRGGBB, 每分量 2-bit: 0-3) */
+    /* 使用與 T-Rex 遊戲相同的語法 */
+    *VGA_PALETTE(COLOR_BLACK)  = 0x00;  /* 黑色 */
+    *VGA_PALETTE(COLOR_CYAN)   = 0x2F;  /* 青色 */
+    *VGA_PALETTE(COLOR_YELLOW) = 0x3C;  /* 黃色 */
+    *VGA_PALETTE(COLOR_PURPLE) = 0x23;  /* 紫色 */
+    *VGA_PALETTE(COLOR_GREEN)  = 0x0C;  /* 綠色 (與 T-Rex 相同) */
+    *VGA_PALETTE(COLOR_RED)    = 0x30;  /* 紅色 */
+    *VGA_PALETTE(COLOR_BLUE)   = 0x03;  /* 藍色 */
+    *VGA_PALETTE(COLOR_ORANGE) = 0x34;  /* 橘色 */
+    *VGA_PALETTE(COLOR_GRAY)   = 0x15;  /* 灰色 */
+    *VGA_PALETTE(COLOR_WHITE)  = 0x3F;  /* 白色 */
 
     /* 清空 framebuffer */
     fb_clear();
@@ -315,6 +316,9 @@ void draw_grid(const grid_t *g)
     }
 }
 
+/* 直接從 SHAPES 表格讀取 */
+extern const int8_t SHAPES[7][4][4][2];
+
 /**
  * draw_block - 繪製當前正在操控的方塊
  *
@@ -324,20 +328,40 @@ void draw_grid(const grid_t *g)
  */
 void draw_block(const block_t *b)
 {
-    int8_t cells[4][2];
-    shape_get_cells(b->shape, b->rot, cells);
+    uint8_t shape = b->shape;
+    uint8_t rot = b->rot & 0x03;
+    if (shape >= 7) shape = 0;
 
-    for (int i = 0; i < MAX_BLOCK_LEN; i++) {
-        int gx = b->x + cells[i][0];  /* 遊戲座標 */
-        int gy = b->y + cells[i][1];
+    /* 手動展開 - 直接從 SHAPES 讀取 */
+    int gx0 = b->x + SHAPES[shape][rot][0][0];
+    int gy0 = b->y + SHAPES[shape][rot][0][1];
+    int gx1 = b->x + SHAPES[shape][rot][1][0];
+    int gy1 = b->y + SHAPES[shape][rot][1][1];
+    int gx2 = b->x + SHAPES[shape][rot][2][0];
+    int gy2 = b->y + SHAPES[shape][rot][2][1];
+    int gx3 = b->x + SHAPES[shape][rot][3][0];
+    int gy3 = b->y + SHAPES[shape][rot][3][1];
 
-        /* 只繪製在可見範圍內的格子 */
-        if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
-            int sx = GRID_OFFSET_X + gx * BLOCK_SIZE;
-            int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy) * BLOCK_SIZE;
-
-            fb_rect(sx, sy, BLOCK_SIZE, BLOCK_SIZE, b->color);
-        }
+    /* 繪製 4 個格子 */
+    if (gx0 >= 0 && gx0 < GRID_WIDTH && gy0 >= 0 && gy0 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx0 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy0) * BLOCK_SIZE;
+        fb_rect(sx, sy, BLOCK_SIZE, BLOCK_SIZE, b->color);
+    }
+    if (gx1 >= 0 && gx1 < GRID_WIDTH && gy1 >= 0 && gy1 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx1 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy1) * BLOCK_SIZE;
+        fb_rect(sx, sy, BLOCK_SIZE, BLOCK_SIZE, b->color);
+    }
+    if (gx2 >= 0 && gx2 < GRID_WIDTH && gy2 >= 0 && gy2 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx2 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy2) * BLOCK_SIZE;
+        fb_rect(sx, sy, BLOCK_SIZE, BLOCK_SIZE, b->color);
+    }
+    if (gx3 >= 0 && gx3 < GRID_WIDTH && gy3 >= 0 && gy3 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx3 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy3) * BLOCK_SIZE;
+        fb_rect(sx, sy, BLOCK_SIZE, BLOCK_SIZE, b->color);
     }
 }
 
@@ -365,20 +389,41 @@ void draw_ghost(const grid_t *g, const block_t *b)
         return;
     }
 
-    /* 繪製 ghost (灰色外框) */
-    int8_t cells[4][2];
-    shape_get_cells(ghost.shape, ghost.rot, cells);
+    /* 直接從 SHAPES 讀取 */
+    uint8_t shape = ghost.shape;
+    uint8_t rot = ghost.rot & 0x03;
+    if (shape >= 7) shape = 0;
 
-    for (int i = 0; i < MAX_BLOCK_LEN; i++) {
-        int gx = ghost.x + cells[i][0];
-        int gy = ghost.y + cells[i][1];
+    /* 手動展開 */
+    int gx0 = ghost.x + SHAPES[shape][rot][0][0];
+    int gy0 = ghost.y + SHAPES[shape][rot][0][1];
+    int gx1 = ghost.x + SHAPES[shape][rot][1][0];
+    int gy1 = ghost.y + SHAPES[shape][rot][1][1];
+    int gx2 = ghost.x + SHAPES[shape][rot][2][0];
+    int gy2 = ghost.y + SHAPES[shape][rot][2][1];
+    int gx3 = ghost.x + SHAPES[shape][rot][3][0];
+    int gy3 = ghost.y + SHAPES[shape][rot][3][1];
 
-        if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
-            int sx = GRID_OFFSET_X + gx * BLOCK_SIZE;
-            int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy) * BLOCK_SIZE;
-
-            fb_rect_outline(sx, sy, BLOCK_SIZE, BLOCK_SIZE, COLOR_GRAY);
-        }
+    /* 繪製灰色外框 */
+    if (gx0 >= 0 && gx0 < GRID_WIDTH && gy0 >= 0 && gy0 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx0 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy0) * BLOCK_SIZE;
+        fb_rect_outline(sx, sy, BLOCK_SIZE, BLOCK_SIZE, COLOR_GRAY);
+    }
+    if (gx1 >= 0 && gx1 < GRID_WIDTH && gy1 >= 0 && gy1 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx1 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy1) * BLOCK_SIZE;
+        fb_rect_outline(sx, sy, BLOCK_SIZE, BLOCK_SIZE, COLOR_GRAY);
+    }
+    if (gx2 >= 0 && gx2 < GRID_WIDTH && gy2 >= 0 && gy2 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx2 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy2) * BLOCK_SIZE;
+        fb_rect_outline(sx, sy, BLOCK_SIZE, BLOCK_SIZE, COLOR_GRAY);
+    }
+    if (gx3 >= 0 && gx3 < GRID_WIDTH && gy3 >= 0 && gy3 < GRID_HEIGHT) {
+        int sx = GRID_OFFSET_X + gx3 * BLOCK_SIZE;
+        int sy = GRID_OFFSET_Y + (GRID_HEIGHT - 1 - gy3) * BLOCK_SIZE;
+        fb_rect_outline(sx, sy, BLOCK_SIZE, BLOCK_SIZE, COLOR_GRAY);
     }
 }
 
@@ -397,18 +442,24 @@ void draw_preview(uint8_t shape)
     /* 清空預覽區域 */
     fb_rect(px, py, 12, 12, COLOR_BLACK);
 
-    /* 取得形狀座標並繪製 */
-    int8_t cells[4][2];
-    shape_get_cells(shape, 0, cells);
+    /* 直接從 SHAPES 讀取 (rot=0) */
+    if (shape >= 7) shape = 0;
     uint8_t color = SHAPE_COLORS[shape];
 
-    for (int i = 0; i < MAX_BLOCK_LEN; i++) {
-        /* 縮小顯示 (2x2 像素而非 3x3) */
-        int sx = px + cells[i][0] * 3;
-        int sy = py + (3 - cells[i][1]) * 3;  /* Y 軸翻轉 */
+    /* 手動展開 */
+    int sx0 = px + SHAPES[shape][0][0][0] * 3;
+    int sy0 = py + (3 - SHAPES[shape][0][0][1]) * 3;
+    int sx1 = px + SHAPES[shape][0][1][0] * 3;
+    int sy1 = py + (3 - SHAPES[shape][0][1][1]) * 3;
+    int sx2 = px + SHAPES[shape][0][2][0] * 3;
+    int sy2 = py + (3 - SHAPES[shape][0][2][1]) * 3;
+    int sx3 = px + SHAPES[shape][0][3][0] * 3;
+    int sy3 = py + (3 - SHAPES[shape][0][3][1]) * 3;
 
-        fb_rect(sx, sy, 2, 2, color);
-    }
+    fb_rect(sx0, sy0, 2, 2, color);
+    fb_rect(sx1, sy1, 2, 2, color);
+    fb_rect(sx2, sy2, 2, 2, color);
+    fb_rect(sx3, sy3, 2, 2, color);
 }
 
 /**

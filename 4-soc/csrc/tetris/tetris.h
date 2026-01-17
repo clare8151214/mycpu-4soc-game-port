@@ -63,31 +63,24 @@
  * 實際的 6-bit RGB 顏色在 draw_init() 中設定。
  *============================================================================*/
 
-#define COLOR_BLACK 0   /* 黑色 - 背景 */
-#define COLOR_CYAN 1    /* 青色 - I 方塊 */
-#define COLOR_YELLOW 2  /* 黃色 - O 方塊 */
-#define COLOR_PURPLE 3  /* 紫色 - T 方塊 */
-#define COLOR_GREEN 4   /* 綠色 - S 方塊 */
-#define COLOR_RED 5     /* 紅色 - Z 方塊 */
-#define COLOR_BLUE 6    /* 藍色 - J 方塊 */
-#define COLOR_ORANGE 7  /* 橘色 - L 方塊 */
-#define COLOR_GRAY 8    /* 灰色 - Ghost (落點預覽) */
-#define COLOR_WHITE 9   /* 白色 - 文字 */
+/* 顏色定義 - 調色盤索引 */
+#define COLOR_BLACK 0
+#define COLOR_CYAN 1
+#define COLOR_YELLOW 2
+#define COLOR_PURPLE 3
+#define COLOR_GREEN 4
+#define COLOR_RED 5
+#define COLOR_BLUE 6
+#define COLOR_ORANGE 7
+#define COLOR_GRAY 8
+#define COLOR_WHITE 9
 
 /**
- * SHAPE_COLORS - 每種形狀對應的顏色
- *
- * 索引對應: 0=O, 1=T, 2=I, 3=J, 4=L, 5=S, 6=Z
- * 這是標準俄羅斯方塊的配色方案。
+ * SHAPE_COLORS - 暫時全部用紅色，先處理其他問題
  */
 static const uint8_t SHAPE_COLORS[NUM_SHAPES] = {
-    COLOR_YELLOW,   /* O - 黃色 */
-    COLOR_PURPLE,   /* T - 紫色 */
-    COLOR_CYAN,     /* I - 青色 */
-    COLOR_BLUE,     /* J - 藍色 */
-    COLOR_ORANGE,   /* L - 橘色 */
-    COLOR_GREEN,    /* S - 綠色 */
-    COLOR_RED,      /* Z - 紅色 */
+    COLOR_RED, COLOR_RED, COLOR_RED, COLOR_RED,
+    COLOR_RED, COLOR_RED, COLOR_RED,
 };
 
 /*============================================================================
@@ -233,6 +226,9 @@ uint8_t shape_get_height(uint8_t shape, uint8_t rot);
 
 /** 取得形狀的旋轉狀態數量 */
 uint8_t shape_num_rotations(uint8_t shape);
+
+/** 初始化形狀系統，必須在 my_srand() 後呼叫 */
+void shape_init(void);
 
 /** 隨機取得下一個形狀 (使用 7-bag 演算法) */
 uint8_t shape_random(void);

@@ -32,7 +32,8 @@
  *     #          ##           ##
  *   ###         ##             ##
  */
-static const int8_t SHAPES[NUM_SHAPES][4][4][2] = {
+/* 移除 static 使其可被其他模組訪問 */
+const int8_t SHAPES[NUM_SHAPES][4][4][2] = {
     /* O - 方形，不旋轉 */
     {
         {{0, 0}, {1, 0}, {0, 1}, {1, 1}},  /* rot 0 */
@@ -166,8 +167,8 @@ void my_srand(uint32_t seed)
 /** bag - 7-bag 袋子，存放 0-6 的形狀索引 */
 static uint8_t bag[7];
 
-/** bag_pos - 目前取到袋子中的第幾個，>=7 表示需要重新打亂 */
-static uint8_t bag_pos = 7;
+/** bag_pos - 目前取到袋子中的第幾個，0-6 有效，其他值表示需要重新打亂 */
+static uint8_t bag_pos;
 
 /* my_mod 函式已移至 tetris.h 作為 inline 函式 */
 
@@ -187,36 +188,73 @@ static void sb_putc(char c)
 
 static void shuffle_bag(void)
 {
-    sb_putc('A');  /* 開始初始化 */
-
     /* 初始化袋子：0, 1, 2, 3, 4, 5, 6 */
     for (int i = 0; i < 7; i++) {
-        bag[i] = i;
+        bag[i] = (uint8_t)i;
+        sb_putc('.');  /* 同步點 - 必要，避免 CPU 掛起 */
     }
 
-    sb_putc('B');  /* 初始化完成，開始洗牌 */
+    /* Fisher-Yates 洗牌：手動展開循環避免 CPU/編譯器問題 */
+    uint32_t rnd;
+    uint8_t j, tmp;
 
-    /* Fisher-Yates 洗牌：從後往前，每個位置隨機與前面的位置交換 */
-    for (int i = 6; i > 0; i--) {
-        sb_putc('0' + i);  /* 顯示當前 i */
-        uint32_t rnd = my_rand();
-        sb_putc('r');
-        uint8_t j = (uint8_t)my_mod(rnd, (uint32_t)(i + 1));
-        sb_putc('m');
-        if (i != j) {
-            uint8_t tmp = bag[i];
-            bag[i] = bag[j];
-            bag[j] = tmp;
-        }
-    }
+    /* i=6: swap with random 0-6 */
+    rnd = my_rand(); sb_putc('*');
+    j = (uint8_t)my_mod(rnd, 7);
+    if (j != 6) { tmp = bag[6]; bag[6] = bag[j]; bag[j] = tmp; }
 
-    sb_putc('C');  /* 洗牌完成 */
+    /* i=5: swap with random 0-5 */
+    rnd = my_rand(); sb_putc('*');
+    j = (uint8_t)my_mod(rnd, 6);
+    if (j != 5) { tmp = bag[5]; bag[5] = bag[j]; bag[j] = tmp; }
+
+    /* i=4: swap with random 0-4 */
+    rnd = my_rand(); sb_putc('*');
+    j = (uint8_t)my_mod(rnd, 5);
+    if (j != 4) { tmp = bag[4]; bag[4] = bag[j]; bag[j] = tmp; }
+
+    /* i=3: swap with random 0-3 */
+    rnd = my_rand(); sb_putc('*');
+    j = (uint8_t)my_mod(rnd, 4);
+    if (j != 3) { tmp = bag[3]; bag[3] = bag[j]; bag[j] = tmp; }
+
+    /* i=2: swap with random 0-2 */
+    rnd = my_rand(); sb_putc('*');
+    j = (uint8_t)my_mod(rnd, 3);
+    if (j != 2) { tmp = bag[2]; bag[2] = bag[j]; bag[j] = tmp; }
+
+    /* i=1: swap with random 0-1 */
+    rnd = my_rand(); sb_putc('*');
+    j = (uint8_t)my_mod(rnd, 2);
+    if (j != 1) { tmp = bag[1]; bag[1] = bag[j]; bag[j] = tmp; }
+
     bag_pos = 0;
 }
 
 /*============================================================================
  * 形狀查詢函式
  *============================================================================*/
+
+/* Debug helper for shape_get_cells */
+static void sgc_putc(char c)
+{
+    volatile uint32_t *uart_status = (volatile uint32_t *)0x40000000;
+    volatile uint32_t *uart_send = (volatile uint32_t *)0x40000010;
+    while (!(*uart_status & 0x01)) ;
+    *uart_send = (uint32_t)c;
+}
+
+static void sgc_put_int(int v)
+{
+    char buf[12];
+    int i = 0;
+    int neg = 0;
+    if (v < 0) { neg = 1; v = -v; }
+    if (v == 0) { sgc_putc('0'); return; }
+    while (v > 0) { buf[i++] = '0' + (v % 10); v = v / 10; }
+    if (neg) sgc_putc('-');
+    while (i > 0) sgc_putc(buf[--i]);
+}
 
 /**
  * shape_get_cells - 取得形狀的 4 個格子座標
@@ -233,13 +271,17 @@ void shape_get_cells(uint8_t shape, uint8_t rot, int8_t cells[4][2])
     if (shape >= NUM_SHAPES) {
         shape = 0;
     }
-    rot = (uint8_t)my_mod(rot, 4);
+    rot = rot & 0x03;  /* 等效於 rot % 4，但更快 */
 
-    /* 複製座標資料 */
-    for (int i = 0; i < 4; i++) {
-        cells[i][0] = SHAPES[shape][rot][i][0];  /* X 座標 */
-        cells[i][1] = SHAPES[shape][rot][i][1];  /* Y 座標 */
-    }
+    /* 複製座標資料 - 不要用迴圈，手動展開以避免編譯器優化問題 */
+    cells[0][0] = SHAPES[shape][rot][0][0];
+    cells[0][1] = SHAPES[shape][rot][0][1];
+    cells[1][0] = SHAPES[shape][rot][1][0];
+    cells[1][1] = SHAPES[shape][rot][1][1];
+    cells[2][0] = SHAPES[shape][rot][2][0];
+    cells[2][1] = SHAPES[shape][rot][2][1];
+    cells[3][0] = SHAPES[shape][rot][3][0];
+    cells[3][1] = SHAPES[shape][rot][3][1];
 }
 
 /**
@@ -254,7 +296,7 @@ uint8_t shape_get_width(uint8_t shape, uint8_t rot)
     if (shape >= NUM_SHAPES) {
         return 2;  /* 預設值 */
     }
-    return SHAPE_DIMENSIONS[shape][my_mod(rot, 4)][0];
+    return SHAPE_DIMENSIONS[shape][rot & 0x03][0];
 }
 
 /**
@@ -269,7 +311,7 @@ uint8_t shape_get_height(uint8_t shape, uint8_t rot)
     if (shape >= NUM_SHAPES) {
         return 2;  /* 預設值 */
     }
-    return SHAPE_DIMENSIONS[shape][my_mod(rot, 4)][1];
+    return SHAPE_DIMENSIONS[shape][rot & 0x03][1];
 }
 
 /**
@@ -293,6 +335,16 @@ uint8_t shape_num_rotations(uint8_t shape)
  *
  * 使用 7-bag 演算法：袋子空了就重新打亂。
  */
+/**
+ * shape_init - 初始化形狀系統
+ *
+ * 必須在 my_srand() 之後、shape_random() 之前呼叫。
+ */
+void shape_init(void)
+{
+    shuffle_bag();  /* 初始化並洗牌 */
+}
+
 uint8_t shape_random(void)
 {
     /* 袋子空了，重新打亂 */

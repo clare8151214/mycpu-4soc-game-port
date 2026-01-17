@@ -573,6 +573,9 @@ void game_loop(void)
  *
  * @return 正常結束返回 0 (實際上不會返回，因為是嵌入式系統)
  */
+/* Timer value register for random seed */
+#define TIMER_VALUE ((volatile uint32_t *) 0x80000000u)
+
 int main(void)
 {
     // 初始化 UART（啟用 RX 中斷，這樣才能接收鍵盤輸入）
@@ -585,21 +588,63 @@ int main(void)
      *--------------------------------------------*/
     draw_init();                    // 初始化 VGA 繪圖系統
     grid_init(&grid);               // 初始化遊戲網格
-    my_srand(soft_tick ? soft_tick : 12345);                // 初始化亂數種子
+
+    /*--------------------------------------------
+     * 隨機種子初始化
+     * 等待用戶按任意鍵，用等待時間作為隨機種子
+     *
+     * 使用方式：
+     * 1. 互動模式 (-t)：等待用戶按任意鍵，按鍵時機決定隨機性
+     * 2. 非互動/測試：不同按鍵產生不同種子
+     *--------------------------------------------*/
+    uart_puts("Press any key to start...\r\n");
+
+    uint32_t seed = 0x5A5A5A5A;  /* 非零起始值 */
+
+    /* 等待 UART 收到任意字元，同時做位元混合 */
+    while (!(*UART_STATUS & 0x02)) {
+        seed++;
+        seed ^= (seed >> 7);
+        seed ^= (seed << 3);
+    }
+
+    /* 讀取按鍵值，混入種子 */
+    uint32_t key = *UART_RECV & 0xFF;
+    seed ^= key;
+    seed ^= (key << 8);
+    seed ^= (key << 16);
+    seed ^= (key << 24);
+
+    /* 最終混合 */
+    seed = (seed << 13) | (seed >> 19);
+    seed ^= (seed >> 17);
+    seed ^= (seed << 5);
+
+    /* 確保種子不為 0 */
+    if (seed == 0) seed = key | 0x12345;
+
+    uart_puts("Seed: ");
+    uart_put_hex8((uint8_t)(seed >> 24));
+    uart_put_hex8((uint8_t)(seed >> 16));
+    uart_put_hex8((uint8_t)(seed >> 8));
+    uart_put_hex8((uint8_t)(seed));
+    uart_puts("\r\n");
+
+    my_srand(seed);                 // 使用隨機種子
+    shape_init();                   // 初始化並洗牌 7-bag
 
     // 生成第一個方塊
     uint8_t shape = shape_random();
+    uart_puts("cur=");
+    uart_put_hex8(shape);
     grid_block_spawn(&grid, &current_block, shape);
-    current_block.color = COLOR_RED;
-
-    // 調試輸出：顯示方塊初始 Y 座標
-    uart_puts("spawn y=");
-    uart_put_hex8((uint8_t)current_block.y);
-    uart_puts("\r\n");
 
     // 生成預覽方塊
     shape = shape_random();
+    uart_puts(" nxt=");
+    uart_put_hex8(shape);
     grid_block_spawn(&grid, &next_block, shape);
+    uart_puts("\r\n");
 
     // 初始化遊戲狀態和計時器
     game_state = GAME_PLAYING;
@@ -654,10 +699,12 @@ int main(void)
             if (!grid_block_move(&grid, &current_block, DIR_DOWN)) {
                 grid_block_add(&grid, &current_block);      // 固定方塊
                 grid_clear_lines(&grid);                     // 消行
-                current_block = next_block;                  // 切換到下一個方塊
-                grid_block_spawn(&grid, &current_block, current_block.shape);
+                // 切換到下一個方塊
+                shape = next_block.shape;
+                grid_block_spawn(&grid, &current_block, shape);
+                // 生成新預覽方塊
                 shape = shape_random();
-                grid_block_spawn(&grid, &next_block, shape); // 生成新預覽
+                grid_block_spawn(&grid, &next_block, shape);
             }
 
         } else if (input == INPUT_HARD_DROP) {
@@ -665,8 +712,10 @@ int main(void)
             grid_block_drop(&grid, &current_block);
             grid_block_add(&grid, &current_block);
             grid_clear_lines(&grid);
-            current_block = next_block;
-            grid_block_spawn(&grid, &current_block, current_block.shape);
+            // 切換到下一個方塊
+            shape = next_block.shape;
+            grid_block_spawn(&grid, &current_block, shape);
+            // 生成新預覽方塊
             shape = shape_random();
             grid_block_spawn(&grid, &next_block, shape);
         }
@@ -685,16 +734,28 @@ int main(void)
         if (soft_tick - last_drop_time >= drop_interval) {
             if (!grid_block_move(&grid, &current_block, DIR_DOWN)) {
                 // 無法下移，鎖定方塊
+                uart_puts("LOCK s=");
+                uart_put_hex8(current_block.shape);
+                uart_puts(" r=");
+                uart_put_hex8(current_block.rot);
+                uart_puts("\r\n");
+
                 grid_block_add(&grid, &current_block);
                 grid_clear_lines(&grid);
 
-                // 切換到下一個方塊
-                current_block = next_block;
-                grid_block_spawn(&grid, &current_block, current_block.shape);
-                current_block.color = COLOR_RED;
+                // 切換到下一個方塊（使用 next_block 的形狀）
+                uart_puts("NEXT s=");
+                uart_put_hex8(next_block.shape);
+                uart_puts("\r\n");
+
+                shape = next_block.shape;
+                grid_block_spawn(&grid, &current_block, shape);
 
                 // 生成新的預覽方塊
                 shape = shape_random();
+                uart_puts("NEW s=");
+                uart_put_hex8(shape);
+                uart_puts("\r\n");
                 grid_block_spawn(&grid, &next_block, shape);
 
                 // Game Over 檢查
