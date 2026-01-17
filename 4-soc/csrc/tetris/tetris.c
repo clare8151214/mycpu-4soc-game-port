@@ -367,7 +367,7 @@ int main(void)
     game_state = GAME_PLAYING;
     soft_tick = 0;
     last_drop_time = 0;
-    drop_interval = 5;
+    drop_interval = 2;
 
     uart_puts("Game ready!\r\n");
     uart_puts("Starting game loop...\r\n");

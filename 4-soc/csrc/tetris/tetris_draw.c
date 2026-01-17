@@ -296,12 +296,13 @@ void draw_game_over(void)
 
 void draw_swap_buffers(void)
 {
-    for (volatile int d = 0; d < 2000; d++) {
-        __asm__ volatile("nop");
-    }
-
     if (debug_marker_y < 64) {
         fb_pixel(0, debug_marker_y, COLOR_WHITE);
+    }
+
+    /* Wait for VBlank to start (bit 0 = 1 means in VBlank) */
+    while (!(*VGA_STATUS & VGA_STAT_VBLANK)) {
+        /* Spin until VBlank begins */
     }
 
     vga_write32(VGA_ADDR_UPLOAD_ADDR, 0);
