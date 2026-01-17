@@ -8,3 +8,5 @@
 4-soc/verilog/verilator/obj_dir/VTop__pch.h.fast.gch
 4-soc/verilog/verilator/obj_dir/VTop__pch.h.slow.gch
 4-soc/verilog/verilator/obj_dir/VTop__verFiles.dat
+
+target/global-logging/sbt-global-log8276934916505251904.log
