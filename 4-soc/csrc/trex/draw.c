@@ -145,6 +145,7 @@ void run_trex(void) {
     int setdown_times=0;
     int cactus_x = 64; // 從螢幕最右邊外面一點點開始
     const int cactus_y = 54; // 確保它踩在地平線上 (64x64 的底部)
+    uint32_t random_seed = 0;
     draw_init_buffers(); // 清空並畫地平線
     while (1) {
         // --- 1. 鍵盤輸入偵測 (UART) ---
@@ -164,7 +165,9 @@ void run_trex(void) {
 
         // 如果仙人掌完全走出了螢幕左邊 (-8 是因為仙人掌寬度是 8)
         if (cactus_x < -8) {
-        cactus_x = 64; // 讓它從右邊重新出現
+            random_seed = *(volatile uint32_t *)TIMER_BASE;
+            uint32_t offset = (random_seed ) % 10;
+            cactus_x = 64 - offset; // 讓它從右邊重新出現
         }
         // --- 3. 繪圖與顯示 ---
         draw_cleanup_buffers();
@@ -176,7 +179,7 @@ void run_trex(void) {
         }else{
             place_dino(dino_x, dino_y, 1, (shap % 2));
         }
-        delay(2500); 
+         
 
 
         // VGA 上傳
@@ -261,7 +264,11 @@ void draw_horizon(uint8_t color, int y_position) {
 
 void draw_cleanup_buffers(void)
 {
-    for (int i = 28 * 64; i < 58*64; i++) vga_framebuffer[i] = 0;
+    for (int i = 28 * 64; i < 58*64; i++) {
+        vga_framebuffer[i] = 0;
+        delay(50); 
+    }
+    
 
 }
 void draw_swap_buffers(void)
