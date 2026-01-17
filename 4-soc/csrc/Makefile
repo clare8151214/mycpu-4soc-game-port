@@ -43,7 +43,7 @@ vga_test.asmbin: vga_test.c mmio.h init.o link.lds
 	$(CROSS_COMPILE)ld -o vga_test.elf -T link.lds $(LDFLAGS) vga_test.o init.o
 	$(OBJCOPY) -O binary -j .text -j .data vga_test.elf $@
 # --- T-Rex 遊戲多檔案編譯規則 ---
-TREX_SOURCES = trex/main.c trex/state.c trex/play.c trex/draw.c trex/menu.c trex/sprite.c trex/tui.c trex/config.c
+TREX_SOURCES = trex/main.c  trex/play.c trex/draw.c 
 TREX_OBJS = $(TREX_SOURCES:.c=.o)
 
 # 這裡把原本的 trex.asmbin 改成處理所有物件檔
@@ -67,7 +67,7 @@ tetris.asmbin: $(TETRIS_OBJS) init.o link.lds
 	@echo "  CC      $@"
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-trex/%.o: trex/%.c mmio.h trex/trex.h trex/private.h trex/tui.h
+trex/%.o: trex/%.c mmio.h trex/trex.h 
 	@echo "  CC      $@"
 	$(CC) $(CFLAGS) -c -o $@ $<
 
