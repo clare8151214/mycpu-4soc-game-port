@@ -145,19 +145,19 @@ void run_trex(void) {
     int setdown_times=0;
     int cactus_x = 64; // 從螢幕最右邊外面一點點開始
     const int cactus_y = 54; // 確保它踩在地平線上 (64x64 的底部)
-    uint32_t random_seed = 0;
+    uint32_t rand_state = 12345;
+    uint32_t offset=0;
     draw_init_buffers(); // 清空並畫地平線
     while (1) {
         // --- 1. 鍵盤輸入偵測 (UART) ---
         // 檢查 UART 狀態暫存器，看是否有按鍵按下
         handle_input(&dino_y, &y_velocity, GROUND_Y, JUMP_IMPULSE,&setdown_times);
-
+        my_rand(&rand_state);
         // 2. 更新物理
         update_physics(&dino_y, &y_velocity, GROUND_Y, GRAVITY);
         
         if ( cactus_x > 5 && 13 > cactus_x + 4 && dino_y + 8 > cactus_y) {
         // 撞到了！
-            // 這裡可以加入碰撞後的處理邏輯，例如結束遊戲或重置位置
             cactus_x = 64; // 碰撞後讓仙人掌重新出現
         }
         
@@ -165,8 +165,7 @@ void run_trex(void) {
 
         // 如果仙人掌完全走出了螢幕左邊 (-8 是因為仙人掌寬度是 8)
         if (cactus_x < -8) {
-            random_seed = *(volatile uint32_t *)TIMER_BASE;
-            uint32_t offset = (random_seed ) % 10;
+            offset = (rand_state ) % 20;
             cactus_x = 64 - offset; // 讓它從右邊重新出現
         }
         // --- 3. 繪圖與顯示 ---
@@ -217,6 +216,12 @@ void handle_input(int *y, int *velocity, int ground_y, int jump_impulse,int *sit
     }
 }
 
+void my_rand(uint32_t *rand_state)
+{
+    *rand_state ^= *rand_state << 13;
+    *rand_state ^= *rand_state >> 17;
+    *rand_state ^= *rand_state << 5;
+}
 void update_physics(int *y, int *velocity, int ground_y, int gravity) {
     *y += *velocity;
 
@@ -266,7 +271,7 @@ void draw_cleanup_buffers(void)
 {
     for (int i = 28 * 64; i < 58*64; i++) {
         vga_framebuffer[i] = 0;
-        delay(50); 
+        delay(8); 
     }
     
 
