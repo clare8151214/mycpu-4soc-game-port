@@ -1,11 +1,10 @@
 //#include <stdlib.h>
 //#include <string.h>
 #include "mmio.h"
-#include <stddef.h> // 這裡可以包含，為了定義 NULL
+#include <stddef.h> 
 #define VGA_WHITE  0x3F
 #define VGA_BLACK  0x00
 #define VGA_GREEN  0x0C  // 恐龍顏色
-#define VGA_RED    0x30  // 障礙物顏色
 // 定義 64x64 的畫布
 uint8_t vga_framebuffer[VGA_FRAME_SIZE];
 #include "trex.h"
@@ -108,8 +107,7 @@ void place_dino_setdown(int x, int y, uint8_t color,int body_picture) {
     }
 }
 
-// Simple delay function (~20Hz frame rate)
-// Use inline assembly to prevent compiler optimization
+
 static inline void delay(uint32_t cycles)
 {
     for (uint32_t i = 0; i < cycles; i++)
@@ -117,44 +115,48 @@ static inline void delay(uint32_t cycles)
 }
 
 #define VGA_STAT_SAFE 0x01
-void run_trex(int shap) {
+void run_trex(uint32_t shap) {
     int dino_x = 5;
-    int dino_y = 50;      // 初始高度（踩在地上）
-    int y_velocity = 0;   // 初始垂直速度
+    int dino_y = 50;      
+    int y_velocity = 0;   
     int body_picture = 0;
     int current_frame = 0;
-    const int GROUND_Y = 50; // 地平線的基準 Y 座標
-    const int JUMP_IMPULSE = -6; // 跳躍的力道（負值代表向上）
+    const int GROUND_Y = 50; 
+    const int JUMP_IMPULSE = -6; 
     const int GRAVITY = 1;      
     int setdown_times=0;
-    int cactus_x = 64; // 從螢幕最右邊外面一點點開始
-    const int cactus_y = 54; // 確保它踩在地平線上 (64x64 的底部)
+    int cactus_x = 64; 
+    const int cactus_y = 54; 
     uint32_t offset=0;
-    draw_init_buffers(); // 清空並畫地平線
+    int score=0;
+    char *score_msg = "score:";
+    draw_init_buffers(); 
     while (1) {
-        // --- 1. 鍵盤輸入偵測 (UART) ---
+        // 鍵盤輸入偵測 (UART) 
         // 檢查 UART 狀態暫存器，看是否有按鍵按下
         handle_input(&dino_y, &y_velocity, GROUND_Y, JUMP_IMPULSE,&setdown_times);
-        my_rand(&shap);
-        // 2. 更新物理
+        
+       
         update_physics(&dino_y, &y_velocity, GROUND_Y, GRAVITY);
         
         if ( cactus_x > 5 && 13 > cactus_x + 4 && dino_y + 8 > cactus_y) {
-        // 撞到了！
-            cactus_x = 64; // 碰撞後讓仙人掌重新出現
+            cactus_x = 64; 
         }
         
-        cactus_x -= 1; // 每一幀向左移動 1 像素
-
-        // 如果仙人掌完全走出了螢幕左邊 (-8 是因為仙人掌寬度是 8)
+        cactus_x -= 1; 
+        
+       
         if (cactus_x < -8) {
-            offset = (shap ) % 20;
-            cactus_x = 64 - offset; // 讓它從右邊重新出現
+            my_rand(&shap);
+            offset = (shap ) % 10;
+            cactus_x = 64 - offset;
+            score+=10; 
+            print_score(score);
         }
-        // --- 3. 繪圖與顯示 ---
+        
         draw_cleanup_buffers();
         place_cactus(cactus_x, cactus_y, 1);
-        // 使用計算出來的 dino_y 來畫恐龍
+        
         if(setdown_times>0){
             place_dino_setdown(dino_x, dino_y, 1, (body_picture % 2));
             setdown_times--;
@@ -165,7 +167,6 @@ void run_trex(int shap) {
 
 
         // VGA 上傳
-        //current_frame = 1 - current_frame;
         *VGA_UPLOAD_ADDR = (current_frame << 16)|1792;
         for (int i = 224; i < 464; i++) {
             *VGA_STREAM_DATA = vga_pack8_pixels(&vga_framebuffer[i * 8]);
@@ -173,32 +174,69 @@ void run_trex(int shap) {
         while (!((*VGA_STATUS) & VGA_STAT_SAFE));
         *VGA_CTRL = (current_frame << 4) | 0x01;
        
-        shap++;
+        body_picture++;
         
     }
 }
 
+void print_score(int score) {
+    
+    char *msg = "score:\n";
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = (uint32_t)msg[0];
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = msg[1];
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = msg[2];
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = msg[3];
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = msg[4];
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = msg[5];
+    print_int(score);
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = '\r';  
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = msg[6];
+}
+
+void print_int(int v) {
+    if (v == 0) {
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = '0';
+        return;
+    }
+    char buf[10];
+    int i = 0;
+    while (v > 0) {
+        buf[i++] = (v % 10) + '0';
+        v /= 10;
+    }
+
+    while (i > 0) {
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = buf[--i];
+    }
+}
 
 
-/* Render buffer management */
 void draw_init_buffers()
 {
    for (int i = 0; i < 4096; i++) vga_framebuffer[i] = 0;
 
-    // B. 畫地平線 (放在 y = 58 的位置)
+   
     draw_horizon(2, 58); 
     for (int i = 0; i < 512; i++) {
         *VGA_STREAM_DATA = vga_pack8_pixels(&vga_framebuffer[i * 8]);
         
     }
-    //render_buffer.needs_refresh = true;
-    //has_dirty_region = false;
+    
     
 }
 
 void draw_horizon(uint8_t color, int y_position) {
     for (int x = 0; x < 64; x++) {
-        // 確保 y 座標在螢幕範圍內
         if (y_position >= 0 && y_position < 64) {
             vga_framebuffer[y_position * 64 + x] = color;
         }
@@ -216,23 +254,20 @@ void draw_cleanup_buffers(void)
 {
     for (int i = 28 * 64; i < 58*64; i++) {
         vga_framebuffer[i] = 0;
-        delay(8); 
+        delay(10); 
     }
     
 
 }
 void draw_swap_buffers(void)
 {
-    // 設定硬體上傳起始位址
     vga_write32(VGA_ADDR_UPLOAD_ADDR, 0);
 
-    // 每 8 個像素打包成一個 32-bit Word 傳送
     for (int i = 0; i < 64 * 64; i += 8) {
         uint32_t packed = vga_pack8_pixels(&vga_framebuffer[i]);
         vga_write32(VGA_ADDR_STREAM_DATA, packed);
     }
 
-    // 觸發 VGA 硬體更新畫面
     vga_write32(VGA_ADDR_CTRL, 0x01);
     
 }

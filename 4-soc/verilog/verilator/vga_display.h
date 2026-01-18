@@ -93,7 +93,7 @@ public:
         }
 
         enabled = true;
-        printf("SDL2 VGA Display initialized (%dx%d)\n", VGA_WIDTH, VGA_HEIGHT);
+        printf("SDL2 VGA Display initialized (%dx%d)\r\n", VGA_WIDTH, VGA_HEIGHT);
         return true;
     }
 
