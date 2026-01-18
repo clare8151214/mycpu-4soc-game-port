@@ -28,25 +28,50 @@ static void uart_puts(const char *s)
     }
 }
 
-static void uart_put_hex8(uint8_t v)
-{
-    static const char hex[] = "0123456789ABCDEF";
-    uart_putc(hex[(v >> 4) & 0xF]);
-    uart_putc(hex[v & 0xF]);
-}
 
-static void uart_try_putc(char c)
+/* Print score to terminal */
+static void uart_put_number(uint32_t num)
 {
-    if (*UART_STATUS & 0x01) {
-        *UART_SEND = c;
+    char buf[12];
+    int i = 0;
+
+    if (num == 0) {
+        uart_putc('0');
+        return;
+    }
+
+    while (num > 0 && i < 11) {
+        buf[i++] = '0' + (num % 10);
+        num /= 10;
+    }
+
+    while (--i >= 0) {
+        uart_putc(buf[i]);
     }
 }
 
-static void uart_try_put_hex8(uint8_t v)
+static uint32_t last_printed_score = 0xFFFFFFFF;
+static uint16_t last_printed_lines = 0xFFFF;
+static uint8_t last_printed_level = 0xFF;
+
+static void print_score_to_terminal(uint32_t score, uint16_t lines, uint8_t level)
 {
-    static const char hex[] = "0123456789ABCDEF";
-    uart_try_putc(hex[(v >> 4) & 0xF]);
-    uart_try_putc(hex[v & 0xF]);
+    /* Only print if score changed */
+    if (score == last_printed_score && lines == last_printed_lines && level == last_printed_level) {
+        return;
+    }
+
+    last_printed_score = score;
+    last_printed_lines = lines;
+    last_printed_level = level;
+
+    uart_puts("\r[Score: ");
+    uart_put_number(score);
+    uart_puts(" Lines: ");
+    uart_put_number(lines);
+    uart_puts(" Lv: ");
+    uart_put_number(level);
+    uart_puts("]   ");
 }
 
 /* Check if UART has data available */
@@ -143,34 +168,6 @@ input_t input_poll(void)
     }
 }
 
-static void debug_log_input(input_t input)
-{
-    switch (input) {
-        case INPUT_LEFT:
-            uart_putc('L');
-            break;
-        case INPUT_RIGHT:
-            uart_putc('R');
-            break;
-        case INPUT_ROTATE:
-            uart_putc('U');
-            break;
-        case INPUT_SOFT_DROP:
-            uart_putc('D');
-            break;
-        case INPUT_HARD_DROP:
-            uart_putc('H');
-            break;
-        case INPUT_PAUSE:
-            uart_putc('P');
-            break;
-        case INPUT_QUIT:
-            uart_putc('Q');
-            break;
-        default:
-            break;
-    }
-}
 
 static grid_t grid;
 
@@ -215,7 +212,6 @@ void game_init(void)
     drop_interval = get_drop_interval(grid.level);
 
     draw_init();
-    uart_puts("Game ready!\r\n");
 }
 
 static void lock_block_and_spawn_next(void)
@@ -247,9 +243,6 @@ void game_update(void)
     }
 
     input_t input = input_poll();
-    if (input != INPUT_NONE) {
-        debug_log_input(input);
-    }
 
     switch (input) {
         case INPUT_LEFT:
@@ -391,34 +384,19 @@ int main(void)
 
     if (seed == 0) seed = key | 0x12345;
 
-    uart_puts("Seed: ");
-    uart_put_hex8((uint8_t)(seed >> 24));
-    uart_put_hex8((uint8_t)(seed >> 16));
-    uart_put_hex8((uint8_t)(seed >> 8));
-    uart_put_hex8((uint8_t)(seed));
-    uart_puts("\r\n");
-
     my_srand(seed);
     shape_init();
 
     uint8_t shape = shape_random();
-    uart_puts("cur=");
-    uart_put_hex8(shape);
     grid_block_spawn(&grid, &current_block, shape);
 
     shape = shape_random();
-    uart_puts(" nxt=");
-    uart_put_hex8(shape);
     grid_block_spawn(&grid, &next_block, shape);
-    uart_puts("\r\n");
 
     game_state = GAME_PLAYING;
     soft_tick = 0;
     last_drop_time = 0;
     drop_interval = 2;
-
-    uart_puts("Game ready!\r\n");
-    uart_puts("Starting game loop...\r\n");
 
     while (1) {
         draw_clear();
@@ -427,30 +405,16 @@ int main(void)
         draw_block(&current_block);
 
         draw_preview(next_block.shape);
-        //draw_score(grid.score, grid.lines_cleared, grid.level);
-        {
-            int marker_y = GRID_OFFSET_Y +
-                           (GRID_HEIGHT - 1 - current_block.y) * BLOCK_SIZE;
-            if (marker_y < 0) {
-                marker_y = 0;
-            } else if (marker_y > 63) {
-                marker_y = 63;
-            }
-            draw_set_debug_marker((uint8_t)marker_y);
-        }
-
+        print_score_to_terminal(grid.score, grid.lines_cleared, grid.level);
 
         draw_swap_buffers();
 
         input_t input = input_poll();
 
         if (input == INPUT_LEFT) {
-            uart_try_putc('L');
-
             grid_block_move(&grid, &current_block, DIR_LEFT);
         } else if (input == INPUT_RIGHT) {
             grid_block_move(&grid, &current_block, DIR_RIGHT);
-            uart_try_putc('R');
         } else if (input == INPUT_ROTATE) {
             grid_block_rotate(&grid, &current_block, 1);
         } else if (input == INPUT_SOFT_DROP) {
@@ -465,14 +429,12 @@ int main(void)
                 grid_block_spawn(&grid, &next_block, shape);
 
                 if (grid_block_collides(&grid, &current_block)) {
-                    uart_puts("Game Over!\r\n");
                     game_state = GAME_OVER;
                 }
             }
             grid.score += 1;  /* Soft drop bonus */
             last_drop_time = soft_tick;
         } else if (input == INPUT_HARD_DROP) {
-            uart_puts("HDROP!\r\n");
             int drop_dist = grid_block_drop(&grid, &current_block);
             grid.score += drop_dist * 2;  /* Hard drop bonus */
             grid_block_add(&grid, &current_block);
@@ -486,11 +448,10 @@ int main(void)
             last_drop_time = soft_tick;
 
             if (grid_block_collides(&grid, &current_block)) {
-                uart_puts("Game Over!\r\n");
                 game_state = GAME_OVER;
             }
         } else if (input == INPUT_PAUSE) {
-            uart_puts("PAUSE\r\n");
+            uart_puts("\r\nPAUSE\r\n");
             /* Wait for another P to resume */
             while (1) {
                 draw_swap_buffers();  /* Keep display alive */
@@ -506,7 +467,7 @@ int main(void)
                 }
             }
         } else if (input == INPUT_QUIT) {
-            uart_puts("QUIT\r\n");
+            uart_puts("\r\nQUIT\r\n");
             game_state = GAME_OVER;
         }
 
@@ -517,38 +478,18 @@ int main(void)
 
         soft_tick++;
 
-        if ((soft_tick & 0x3FFF) == 0) {
-            uart_try_putc('y');
-            uart_try_put_hex8((uint8_t)current_block.y);
-            uart_try_putc('\n');
-        }
-
         if (soft_tick - last_drop_time >= drop_interval) {
             if (!grid_block_move(&grid, &current_block, DIR_DOWN)) {
-                uart_puts("LOCK s=");
-                uart_put_hex8(current_block.shape);
-                uart_puts(" r=");
-                uart_put_hex8(current_block.rot);
-                uart_puts("\r\n");
-
                 grid_block_add(&grid, &current_block);
                 grid_clear_lines(&grid);
-
-                uart_puts("NEXT s=");
-                uart_put_hex8(next_block.shape);
-                uart_puts("\r\n");
 
                 shape = next_block.shape;
                 grid_block_spawn(&grid, &current_block, shape);
 
                 shape = shape_random();
-                uart_puts("NEW s=");
-                uart_put_hex8(shape);
-                uart_puts("\r\n");
                 grid_block_spawn(&grid, &next_block, shape);
 
                 if (grid_block_collides(&grid, &current_block)) {
-                    uart_puts("Game Over!\r\n");
                     game_state = GAME_OVER;
                 }
             }
@@ -558,5 +499,12 @@ int main(void)
         if (game_state == GAME_OVER) {
             break;
         }
+    }
+
+    uart_puts("\r\nGame Over!\r\n");
+
+    /* Stay in game over state - halt */
+    while (1) {
+        draw_swap_buffers();  /* Keep display alive */
     }
 }

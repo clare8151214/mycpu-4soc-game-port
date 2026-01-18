@@ -144,7 +144,6 @@ void draw_game_over(void);
 void draw_clear(void);
 
 void draw_swap_buffers(void);
-void draw_set_debug_marker(uint8_t y);
 
 input_t input_poll(void);
 

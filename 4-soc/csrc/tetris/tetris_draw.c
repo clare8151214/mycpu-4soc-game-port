@@ -22,9 +22,6 @@ static inline void cpu_sync(void)
 
 static uint8_t framebuffer[VGA_FRAME_SIZE];
 
-static uint8_t current_frame = 0;
-static uint8_t debug_marker_y = 0;
-
 static void fb_clear(void)
 {
     for (int i = 0; i < VGA_FRAME_SIZE; i++) {
@@ -145,11 +142,6 @@ void draw_init(void)
 void draw_clear(void)
 {
     fb_clear();
-}
-
-void draw_set_debug_marker(uint8_t y)
-{
-    debug_marker_y = y;
 }
 
 void draw_border(void)
@@ -307,31 +299,10 @@ void draw_preview(uint8_t shape)
 
 void draw_score(uint32_t score, uint16_t lines, uint8_t level)
 {
-    int sx = SCORE_X;
-    int sy = SCORE_Y;
-
-    /* Clear score area in 6x6 blocks with sync after each block.
-     * See README Issue 7: tight loops without I/O can hang the CPU. */
-    fb_rect(sx,      sy,      6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 6,  sy,      6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 12, sy,      6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 18, sy,      6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx,      sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 6,  sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 12, sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 18, sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx,      sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 6,  sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 12, sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
-    fb_rect(sx + 18, sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
-
-    if (score > 999999) {
-        score = 999999;
-    }
-
-    fb_number(sx, sy,      score, COLOR_WHITE); cpu_sync();
-    fb_number(sx, sy + 6,  lines, COLOR_CYAN); cpu_sync();
-    fb_number(sx, sy + 12, level, COLOR_YELLOW);
+    /* Score display moved to terminal - do nothing on VGA */
+    (void)score;
+    (void)lines;
+    (void)level;
 }
 
 void draw_game_over(void)
@@ -347,10 +318,6 @@ void draw_game_over(void)
 
 void draw_swap_buffers(void)
 {
-    if (debug_marker_y < 64) {
-        fb_pixel(0, debug_marker_y, COLOR_WHITE);
-    }
-
     /* Wait for VBlank to start (bit 0 = 1 means in VBlank) */
     while (!(*VGA_STATUS & VGA_STAT_VBLANK)) {
         /* Spin until VBlank begins */
