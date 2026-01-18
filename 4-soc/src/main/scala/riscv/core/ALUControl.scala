@@ -10,6 +10,7 @@ import riscv.core.InstructionTypes
 import riscv.core.Instructions
 import riscv.core.InstructionsTypeI
 import riscv.core.InstructionsTypeR
+import riscv.core.InstructionsTypeM
 
 class ALUControl extends Module {
   val io = IO(new Bundle {
@@ -41,19 +42,31 @@ class ALUControl extends Module {
       )
     }
     is(InstructionTypes.RM) {
-      io.alu_funct := MuxLookup(
-        io.funct3,
-        ALUFunctions.zero
-      )(
-        IndexedSeq(
-          InstructionsTypeR.add_sub -> Mux(io.funct7(5), ALUFunctions.sub, ALUFunctions.add),
-          InstructionsTypeR.sll     -> ALUFunctions.sll,
-          InstructionsTypeR.slt     -> ALUFunctions.slt,
-          InstructionsTypeR.sltu    -> ALUFunctions.sltu,
-          InstructionsTypeR.xor     -> ALUFunctions.xor,
-          InstructionsTypeR.or      -> ALUFunctions.or,
-          InstructionsTypeR.and     -> ALUFunctions.and,
-          InstructionsTypeR.sr      -> Mux(io.funct7(5), ALUFunctions.sra, ALUFunctions.srl)
+      io.alu_funct := Mux(
+        io.funct7 === "b0000001".U,
+        MuxLookup(io.funct3, ALUFunctions.zero)(
+          IndexedSeq(
+            InstructionsTypeM.mul    -> ALUFunctions.mul,
+            InstructionsTypeM.mulh   -> ALUFunctions.mulh,
+            InstructionsTypeM.mulhsu -> ALUFunctions.mulhsu,
+            InstructionsTypeM.mulhum -> ALUFunctions.mulhu,
+            InstructionsTypeM.div    -> ALUFunctions.div,
+            InstructionsTypeM.rem    -> ALUFunctions.rem,
+            InstructionsTypeM.divu   -> ALUFunctions.divu,
+            InstructionsTypeM.remu   -> ALUFunctions.remu
+          )
+        ),
+        MuxLookup(io.funct3, ALUFunctions.zero)(
+          IndexedSeq(
+            InstructionsTypeR.add_sub -> Mux(io.funct7(5), ALUFunctions.sub, ALUFunctions.add),
+            InstructionsTypeR.sll     -> ALUFunctions.sll,
+            InstructionsTypeR.slt     -> ALUFunctions.slt,
+            InstructionsTypeR.sltu    -> ALUFunctions.sltu,
+            InstructionsTypeR.xor     -> ALUFunctions.xor,
+            InstructionsTypeR.or      -> ALUFunctions.or,
+            InstructionsTypeR.and     -> ALUFunctions.and,
+            InstructionsTypeR.sr      -> Mux(io.funct7(5), ALUFunctions.sra, ALUFunctions.srl)
+          )
         )
       )
     }

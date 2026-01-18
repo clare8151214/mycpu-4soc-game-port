@@ -425,6 +425,9 @@ int main(void)
         draw_border();
         draw_grid(&grid);
         draw_block(&current_block);
+
+        draw_preview(next_block.shape);
+        //draw_score(grid.score, grid.lines_cleared, grid.level);
         {
             int marker_y = GRID_OFFSET_Y +
                            (GRID_HEIGHT - 1 - current_block.y) * BLOCK_SIZE;
@@ -435,6 +438,8 @@ int main(void)
             }
             draw_set_debug_marker((uint8_t)marker_y);
         }
+
+
         draw_swap_buffers();
 
         input_t input = input_poll();
@@ -458,10 +463,18 @@ int main(void)
 
                 shape = shape_random();
                 grid_block_spawn(&grid, &next_block, shape);
+
+                if (grid_block_collides(&grid, &current_block)) {
+                    uart_puts("Game Over!\r\n");
+                    game_state = GAME_OVER;
+                }
             }
+            grid.score += 1;  /* Soft drop bonus */
+            last_drop_time = soft_tick;
         } else if (input == INPUT_HARD_DROP) {
             uart_puts("HDROP!\r\n");
-            grid_block_drop(&grid, &current_block);
+            int drop_dist = grid_block_drop(&grid, &current_block);
+            grid.score += drop_dist * 2;  /* Hard drop bonus */
             grid_block_add(&grid, &current_block);
             grid_clear_lines(&grid);
 
@@ -470,6 +483,12 @@ int main(void)
 
             shape = shape_random();
             grid_block_spawn(&grid, &next_block, shape);
+            last_drop_time = soft_tick;
+
+            if (grid_block_collides(&grid, &current_block)) {
+                uart_puts("Game Over!\r\n");
+                game_state = GAME_OVER;
+            }
         } else if (input == INPUT_PAUSE) {
             uart_puts("PAUSE\r\n");
             /* Wait for another P to resume */

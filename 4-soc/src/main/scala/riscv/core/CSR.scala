@@ -26,6 +26,7 @@ object CSRRegister {
   // CSR addresses per RISC-V Privileged Spec v1.12, Section 3.1-3.2
   // Machine Information Registers
   val MSTATUS  = 0x300.U(Parameters.CSRRegisterAddrWidth)
+  val MISA     = 0x301.U(Parameters.CSRRegisterAddrWidth)
   val MIE      = 0x304.U(Parameters.CSRRegisterAddrWidth)
   val MTVEC    = 0x305.U(Parameters.CSRRegisterAddrWidth)
   val MSCRATCH = 0x340.U(Parameters.CSRRegisterAddrWidth)
@@ -191,6 +192,8 @@ class CSR extends Module {
   val mhpmcounter8_shadow = RegInit(0.U(32.W))
   val mhpmcounter9_shadow = RegInit(0.U(32.W))
 
+  val misa = "h40001100".U(Parameters.DataWidth)
+
   // Latch high word when low word is read (for atomic 64-bit reads)
   val reading_cycle_low =
     io.reg_read_address_id === CSRRegister.CycleL || io.reg_read_address_id === CSRRegister.MCycleL
@@ -279,6 +282,7 @@ class CSR extends Module {
     IndexedSeq(
       // Machine trap registers
       CSRRegister.MSTATUS  -> mstatus,
+      CSRRegister.MISA     -> misa,
       CSRRegister.MIE      -> mie,
       CSRRegister.MTVEC    -> mtvec,
       CSRRegister.MSCRATCH -> mscratch,

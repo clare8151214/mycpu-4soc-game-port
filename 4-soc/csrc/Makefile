@@ -1,9 +1,9 @@
 CROSS_COMPILE ?= riscv64-unknown-elf-
 
-ASFLAGS = -march=rv32i_zicsr -mabi=ilp32
+ASFLAGS = -march=rv32im_zicsr -mabi=ilp32
 # Optimization required: -O2 produces large stack frames that overflow in deep call chains
-# RV32I lacks hardware multiply/divide, so -O2 significantly reduces code size
-CFLAGS = -O2 -Wall -fno-builtin -march=rv32i_zicsr -mabi=ilp32 -I . -I trex -I tetris
+# RV32IM with hardware multiply/divide (M extension) for better performance
+CFLAGS = -O2 -Wall -fno-builtin -march=rv32im_zicsr -mabi=ilp32 -I . -I trex -I tetris
 LDFLAGS = --oformat=elf32-littleriscv
 
 AS := $(CROSS_COMPILE)as

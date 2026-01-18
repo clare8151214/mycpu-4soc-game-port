@@ -282,47 +282,87 @@
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_33",
+    "target":"Top.ALUControl._io_alu_funct_T_49",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_31",
+    "target":"Top.ALUControl._io_alu_funct_T_48",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_29",
+    "target":"Top.ALUControl._io_alu_funct_T_46",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_27",
+    "target":"Top.ALUControl._io_alu_funct_T_44",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_25",
+    "target":"Top.ALUControl._io_alu_funct_T_42",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_23",
+    "target":"Top.ALUControl._io_alu_funct_T_40",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_21",
+    "target":"Top.ALUControl._io_alu_funct_T_38",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_19",
+    "target":"Top.ALUControl._io_alu_funct_T_36",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
     "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
-    "target":"Top.ALUControl._io_alu_funct_T_17",
+    "target":"Top.ALUControl._io_alu_funct_T_34",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_32",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_30",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_28",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_26",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_24",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_22",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_20",
+    "enumTypeName":"riscv.core.ALUFunctions"
+  },
+  {
+    "class":"chisel3.experimental.EnumAnnotations$EnumComponentAnnotation",
+    "target":"Top.ALUControl._io_alu_funct_T_18",
     "enumTypeName":"riscv.core.ALUFunctions"
   },
   {
@@ -375,16 +415,24 @@
     "typeName":"riscv.core.ALUFunctions",
     "definition":{
       "sll":3,
+      "divu":17,
       "sra":9,
+      "mulhu":14,
+      "div":15,
       "or":6,
-      "xor":5,
+      "mulh":12,
+      "mulhsu":13,
+      "rem":16,
       "slt":4,
       "sub":2,
+      "remu":18,
       "add":1,
       "sltu":10,
       "and":7,
       "srl":8,
-      "zero":0
+      "zero":0,
+      "mul":11,
+      "xor":5
     }
   },
   {

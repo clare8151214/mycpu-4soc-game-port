@@ -48,6 +48,9 @@ class InstructionDecode extends Module {
   val rd     = io.instruction(11, 7)
   val rs1    = io.instruction(19, 15)
   val rs2    = io.instruction(24, 20)
+  val isMul  = (opcode === InstructionTypes.RM) &&
+    (funct7 === "b0000001".U) &&
+    (funct3 === InstructionsTypeM.mul)
 
   // Track which operands are actually used to avoid false hazards/stalls on
   // encodings that reuse rs1/rs2 bits for immediates (JAL, CSR immediate, etc.).

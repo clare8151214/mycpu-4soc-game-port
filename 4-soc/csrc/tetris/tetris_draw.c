@@ -5,6 +5,21 @@
 #define VGA_STAT_VBLANK 0x01
 #define VGA_STAT_SAFE   0x01
 
+/*
+ * CPU sync point - prevents CPU stall in tight loops.
+ * See README Issue 7: the CPU hangs in tight computational loops
+ * without I/O operations. We must SEND to UART.
+ *
+ * We send only if UART is ready to avoid blocking.
+ * If UART is busy, the memory-mapped I/O read is still an I/O op.
+ */
+static inline void cpu_sync(void)
+{
+    if (*UART_STATUS & 0x01) {
+        *UART_SEND = '\b';  /* Backspace - invisible */
+    }
+}
+
 static uint8_t framebuffer[VGA_FRAME_SIZE];
 
 static uint8_t current_frame = 0;
@@ -14,6 +29,8 @@ static void fb_clear(void)
 {
     for (int i = 0; i < VGA_FRAME_SIZE; i++) {
         framebuffer[i] = COLOR_BLACK;
+        /* Sync every 256 pixels to prevent stall */
+        //if ((i & 0xFF) == 0) cpu_sync();
     }
 }
 
@@ -30,6 +47,8 @@ static void fb_rect(int x, int y, int w, int h, uint8_t color)
         for (int dx = 0; dx < w; dx++) {
             fb_pixel(x + dx, y + dy, color);
         }
+        /* Sync after each row to prevent CPU stall */
+        //if ((dy & 1) == 1) cpu_sync();
     }
 }
 
@@ -39,11 +58,13 @@ static void fb_rect_outline(int x, int y, int w, int h, uint8_t color)
         fb_pixel(x + dx, y, color);
         fb_pixel(x + dx, y + h - 1, color);
     }
+    //cpu_sync();
 
     for (int dy = 0; dy < h; dy++) {
         fb_pixel(x, y + dy, color);
         fb_pixel(x + w - 1, y + dy, color);
     }
+    //cpu_sync();
 }
 
 static const uint8_t DIGIT_FONT[10][5] = {
@@ -86,6 +107,7 @@ static void fb_number(int x, int y, uint32_t num, uint8_t color)
     }
 
     while (num > 0 && count < 10) {
+        cpu_sync();  /* Sync after each division to prevent stall */
         digits[count++] = (int)my_mod(num, 10);
         num = my_div(num, 10);
     }
@@ -242,28 +264,44 @@ void draw_ghost(const grid_t *g, const block_t *b)
     }
 }
 
+/* Multiply by 3 using shift and add (avoids software multiply on RV32I) */
+static inline int mul3(int x)
+{
+    return (x << 1) + x;
+}
+
 void draw_preview(uint8_t shape)
 {
     int px = PREVIEW_X;
     int py = PREVIEW_Y;
 
-    fb_rect(px, py, 12, 12, COLOR_BLACK);
+    /* Clear preview area in 4x4 blocks with sync after each block.
+     * See README Issue 7: tight loops without I/O can hang the CPU. */
+    fb_rect(px,     py,     4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px + 4, py,     4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px + 8, py,     4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px,     py + 4, 4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px + 4, py + 4, 4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px + 8, py + 4, 4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px,     py + 8, 4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px + 4, py + 8, 4, 4, COLOR_BLACK); cpu_sync();
+    fb_rect(px + 8, py + 8, 4, 4, COLOR_BLACK); cpu_sync();
 
     if (shape >= 7) shape = 0;
     uint8_t color = SHAPE_COLORS[shape];
 
-    int sx0 = px + SHAPES[shape][0][0][0] * 3;
-    int sy0 = py + (3 - SHAPES[shape][0][0][1]) * 3;
-    int sx1 = px + SHAPES[shape][0][1][0] * 3;
-    int sy1 = py + (3 - SHAPES[shape][0][1][1]) * 3;
-    int sx2 = px + SHAPES[shape][0][2][0] * 3;
-    int sy2 = py + (3 - SHAPES[shape][0][2][1]) * 3;
-    int sx3 = px + SHAPES[shape][0][3][0] * 3;
-    int sy3 = py + (3 - SHAPES[shape][0][3][1]) * 3;
+    int sx0 = px + mul3(SHAPES[shape][0][0][0]);
+    int sy0 = py + mul3(3 - SHAPES[shape][0][0][1]);
+    int sx1 = px + mul3(SHAPES[shape][0][1][0]);
+    int sy1 = py + mul3(3 - SHAPES[shape][0][1][1]);
+    int sx2 = px + mul3(SHAPES[shape][0][2][0]);
+    int sy2 = py + mul3(3 - SHAPES[shape][0][2][1]);
+    int sx3 = px + mul3(SHAPES[shape][0][3][0]);
+    int sy3 = py + mul3(3 - SHAPES[shape][0][3][1]);
 
-    fb_rect(sx0, sy0, 2, 2, color);
-    fb_rect(sx1, sy1, 2, 2, color);
-    fb_rect(sx2, sy2, 2, 2, color);
+    fb_rect(sx0, sy0, 2, 2, color); cpu_sync();
+    fb_rect(sx1, sy1, 2, 2, color); cpu_sync();
+    fb_rect(sx2, sy2, 2, 2, color); cpu_sync();
     fb_rect(sx3, sy3, 2, 2, color);
 }
 
@@ -272,14 +310,27 @@ void draw_score(uint32_t score, uint16_t lines, uint8_t level)
     int sx = SCORE_X;
     int sy = SCORE_Y;
 
-    fb_rect(sx, sy, 24, 18, COLOR_BLACK);
+    /* Clear score area in 6x6 blocks with sync after each block.
+     * See README Issue 7: tight loops without I/O can hang the CPU. */
+    fb_rect(sx,      sy,      6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 6,  sy,      6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 12, sy,      6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 18, sy,      6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx,      sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 6,  sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 12, sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 18, sy + 6,  6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx,      sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 6,  sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 12, sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
+    fb_rect(sx + 18, sy + 12, 6, 6, COLOR_BLACK); cpu_sync();
 
     if (score > 999999) {
         score = 999999;
     }
 
-    fb_number(sx, sy,      score, COLOR_WHITE);
-    fb_number(sx, sy + 6,  lines, COLOR_CYAN);
+    fb_number(sx, sy,      score, COLOR_WHITE); cpu_sync();
+    fb_number(sx, sy + 6,  lines, COLOR_CYAN); cpu_sync();
     fb_number(sx, sy + 12, level, COLOR_YELLOW);
 }
 

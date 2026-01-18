@@ -17,7 +17,7 @@ import riscv.Parameters
  * but don't need a separate zero output).
  */
 object ALUFunctions extends ChiselEnum {
-  val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu = Value
+  val zero, add, sub, sll, slt, xor, or, and, srl, sra, sltu, mul, mulh, mulhsu, mulhu, div, rem, divu, remu = Value
 }
 
 /**
@@ -75,6 +75,46 @@ class ALU extends Module {
     }
     is(ALUFunctions.sltu) {
       io.result := io.op1 < io.op2
+    }
+    is(ALUFunctions.mul) {
+      io.result := (io.op1 * io.op2)(Parameters.DataBits - 1, 0)
+    }
+    is(ALUFunctions.mulh) {
+      val prod = (io.op1.asSInt * io.op2.asSInt).asUInt
+      io.result := prod(63, 32)
+    }
+    is(ALUFunctions.mulhsu) {
+      val op2u = Cat(0.U(1.W), io.op2).asSInt
+      val prod = (io.op1.asSInt * op2u).asUInt
+      io.result := prod(63, 32)
+    }
+    is(ALUFunctions.mulhu) {
+      val prod = io.op1 * io.op2
+      io.result := prod(63, 32)
+    }
+    is(ALUFunctions.div) {
+      val op1Neg    = io.op1(Parameters.DataBits - 1)
+      val op2Neg    = io.op2(Parameters.DataBits - 1)
+      val op1Abs    = Mux(op1Neg, (~io.op1).asUInt + 1.U, io.op1)
+      val op2Abs    = Mux(op2Neg, (~io.op2).asUInt + 1.U, io.op2)
+      val divAbs    = op1Abs / op2Abs
+      val divSigned = Mux(op1Neg ^ op2Neg, (~divAbs).asUInt + 1.U, divAbs)
+      io.result := Mux(io.op2 === 0.U, "hFFFFFFFF".U, divSigned)
+    }
+    is(ALUFunctions.rem) {
+      val op1Neg    = io.op1(Parameters.DataBits - 1)
+      val op2Neg    = io.op2(Parameters.DataBits - 1)
+      val op1Abs    = Mux(op1Neg, (~io.op1).asUInt + 1.U, io.op1)
+      val op2Abs    = Mux(op2Neg, (~io.op2).asUInt + 1.U, io.op2)
+      val remAbs    = op1Abs % op2Abs
+      val remSigned = Mux(op1Neg, (~remAbs).asUInt + 1.U, remAbs)
+      io.result := Mux(io.op2 === 0.U, io.op1, remSigned)
+    }
+    is(ALUFunctions.divu) {
+      io.result := Mux(io.op2 === 0.U, "hFFFFFFFF".U, io.op1 / io.op2)
+    }
+    is(ALUFunctions.remu) {
+      io.result := Mux(io.op2 === 0.U, io.op1, io.op1 % io.op2)
     }
   }
 }

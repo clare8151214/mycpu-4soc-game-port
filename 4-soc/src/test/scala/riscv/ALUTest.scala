@@ -41,6 +41,33 @@ class ALUTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
+  it should "perform MUL/DIV/REM correctly" in {
+    test(new ALU).withAnnotations(TestAnnotations.annos) { dut =>
+      assert(runALU(dut, ALUFunctions.mul, 6, 7) == 42)
+      assert(runALU(dut, ALUFunctions.mul, 0xffffffffL, 2) == 0xfffffffeL)
+      assert(runALU(dut, ALUFunctions.mulh, 0x7fffffffL, 2) == 0x00000000L)
+      assert(runALU(dut, ALUFunctions.mulh, 0x80000000L, 2) == 0xffffffffL)
+      assert(runALU(dut, ALUFunctions.mulhu, 0xffffffffL, 0xffffffffL) == 0xfffffffeL)
+      assert(runALU(dut, ALUFunctions.mulhsu, 0x80000000L, 2) == 0xffffffffL)
+
+      assert(runALU(dut, ALUFunctions.div, 10, 3) == 3)
+      assert(runALU(dut, ALUFunctions.div, 0xfffffff6L, 3) == 0xfffffffdL) // -10 / 3 = -3
+      assert(runALU(dut, ALUFunctions.div, 10, 0) == 0xffffffffL)
+
+      assert(runALU(dut, ALUFunctions.rem, 10, 3) == 1)
+      assert(runALU(dut, ALUFunctions.rem, 0xfffffff6L, 3) == 0xffffffffL) // -10 % 3 = -1
+      assert(runALU(dut, ALUFunctions.rem, 0x12345678L, 0) == 0x12345678L)
+
+      assert(runALU(dut, ALUFunctions.divu, 10, 3) == 3)
+      assert(runALU(dut, ALUFunctions.divu, 0xffffffffL, 2) == 0x7fffffffL)
+      assert(runALU(dut, ALUFunctions.divu, 10, 0) == 0xffffffffL)
+
+      assert(runALU(dut, ALUFunctions.remu, 10, 3) == 1)
+      assert(runALU(dut, ALUFunctions.remu, 0xffffffffL, 2) == 1)
+      assert(runALU(dut, ALUFunctions.remu, 0x89abcdefL, 0) == 0x89abcdefL)
+    }
+  }
+
   // ==================== Logical Operations ====================
 
   it should "perform AND correctly" in {
