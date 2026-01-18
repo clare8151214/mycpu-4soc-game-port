@@ -33,7 +33,16 @@ static const uint8_t dino_shape[2][8] = {
     0b00001100  //     ## 
     }
 };
-
+static const uint8_t die_shape[8] ={
+    0b00111100, //    ####  
+    0b01111110, //   ###### 
+    0b11011011, //  ## ## ## (眼窩)
+    0b11011011, //  ## ## ##
+    0b11111111, //  ########
+    0b00111100, //    ####  
+    0b00100100, //    #  #   (牙齒/下顎)
+    0b00111100  //    ####
+};
 // 蹲下的恐龍 (8x8 陣列，但圖案集中在下方)
 static const uint8_t dino_shape_setdown[2][8] = {
     {
@@ -107,7 +116,19 @@ void place_dino_setdown(int x, int y, uint8_t color,int body_picture) {
     }
 }
 
-
+void place_die() {
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            if ((die_shape[row] >> (7 - col)) & 1) {
+                int px = 28 + col;
+                int py = 50 + row;
+                if (px >= 0 && px < 64 && py >= 0 && py < 64) {
+                    vga_framebuffer[py * 64 + px] = 3;
+                }
+            }
+        }
+    }
+}
 static inline void delay(uint32_t cycles)
 {
     for (uint32_t i = 0; i < cycles; i++)
@@ -130,6 +151,7 @@ void run_trex(uint32_t shap) {
     uint32_t offset=0;
     int score=0;
     char *score_msg = "score:";
+    
     draw_init_buffers(); 
     while (1) {
         // 鍵盤輸入偵測 (UART) 
@@ -140,17 +162,18 @@ void run_trex(uint32_t shap) {
         update_physics(&dino_y, &y_velocity, GROUND_Y, GRAVITY);
         
         if ( cactus_x > 5 && 13 > cactus_x + 4 && dino_y + 8 > cactus_y) {
-            cactus_x = 64; 
+            score =0;
+            cactus_x = 64;
+            draw_die(); 
         }
-        
-        cactus_x -= 1; 
-        
-       
+
+        cactus_x -= 1;         
         if (cactus_x < -8) {
-            my_rand(&shap);
-            offset = (shap ) % 10;
-            cactus_x = 64 - offset;
-            score+=10; 
+            //my_rand(&shap);
+            //offset = (shap ) % 10;
+            cactus_x = 64 ;
+            //- offset;
+            score+=1; 
             print_score(score);
         }
         
@@ -179,46 +202,46 @@ void run_trex(uint32_t shap) {
     }
 }
 
-void print_score(int score) {
+void print_score(int s) {
     
-    char *msg = "score:\n";
+    char *msg_s = "score:";
     while (!(*UART_STATUS & 0x01));
-    *UART_SEND = (uint32_t)msg[0];
+    *UART_SEND = msg_s[0];
     while (!(*UART_STATUS & 0x01));
-    *UART_SEND = msg[1];
+    *UART_SEND = msg_s[1];
     while (!(*UART_STATUS & 0x01));
-    *UART_SEND = msg[2];
+    *UART_SEND = msg_s[2];
     while (!(*UART_STATUS & 0x01));
-    *UART_SEND = msg[3];
+    *UART_SEND = msg_s[3];
     while (!(*UART_STATUS & 0x01));
-    *UART_SEND = msg[4];
+    *UART_SEND = msg_s[4];
     while (!(*UART_STATUS & 0x01));
-    *UART_SEND = msg[5];
-    print_int(score);
+    *UART_SEND = msg_s[5];
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = s + '0';
     while (!(*UART_STATUS & 0x01));
     *UART_SEND = '\r';  
     while (!(*UART_STATUS & 0x01));
-    *UART_SEND = msg[6];
+    *UART_SEND = '\n';
+}
+void draw_die(){
+    draw_cleanup_buffers();
+    place_die();
+    draw_swap_buffers();
+    char *msg2 = "you die!\r\n";
+    char *msg = "Press any key to continue the game\r\n";
+    for (int i = 0; i <10; i++) {
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = msg2[i];
+    }
+    for (int i = 0; i <36; i++) {
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = msg[i];
+    }
+    while(!(*UART_STATUS & 0x02));
 }
 
-void print_int(int v) {
-    if (v == 0) {
-        while (!(*UART_STATUS & 0x01));
-        *UART_SEND = '0';
-        return;
-    }
-    char buf[10];
-    int i = 0;
-    while (v > 0) {
-        buf[i++] = (v % 10) + '0';
-        v /= 10;
-    }
 
-    while (i > 0) {
-        while (!(*UART_STATUS & 0x01));
-        *UART_SEND = buf[--i];
-    }
-}
 
 
 void draw_init_buffers()
