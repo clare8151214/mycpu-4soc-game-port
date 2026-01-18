@@ -49,14 +49,62 @@ static void uart_try_put_hex8(uint8_t v)
     uart_try_putc(hex[v & 0xF]);
 }
 
+/* Check if UART has data available */
+static inline int uart_has_data(void)
+{
+    return (*UART_STATUS & 0x02) != 0;
+}
+
+/* Read one character from UART (blocking) */
+static inline char uart_getc_blocking(void)
+{
+    while (!uart_has_data());
+    return (char)(*UART_RECV & 0xFF);
+}
+
+/* Try to read one character from UART (non-blocking, returns -1 if none) */
+static inline int uart_getc_nonblocking(void)
+{
+    if (!uart_has_data()) {
+        return -1;
+    }
+    return (int)(*UART_RECV & 0xFF);
+}
+
 input_t input_poll(void)
 {
-    if (!(*UART_STATUS & 0x02)) {
+    if (!uart_has_data()) {
         return INPUT_NONE;
     }
 
     char c = (char)(*UART_RECV & 0xFF);
-    uart_try_putc(c);
+
+    /* Handle ANSI escape sequences for arrow keys */
+    /* Arrow keys send: ESC [ A/B/C/D (0x1B 0x5B 0x41-0x44) */
+    if (c == 0x1B) {  /* ESC */
+        /* Wait briefly for next character */
+        for (volatile int i = 0; i < 1000; i++) {
+            if (uart_has_data()) break;
+        }
+        int c2 = uart_getc_nonblocking();
+        if (c2 == '[' || c2 == 'O') {  /* CSI or SS3 */
+            for (volatile int i = 0; i < 1000; i++) {
+                if (uart_has_data()) break;
+            }
+            int c3 = uart_getc_nonblocking();
+            switch (c3) {
+                case 'A':  /* Up arrow */
+                    return INPUT_ROTATE;
+                case 'B':  /* Down arrow */
+                    return INPUT_SOFT_DROP;
+                case 'C':  /* Right arrow */
+                    return INPUT_RIGHT;
+                case 'D':  /* Left arrow */
+                    return INPUT_LEFT;
+            }
+        }
+        return INPUT_NONE;  /* Unknown escape sequence */
+    }
 
     switch (c) {
         case 'a':
@@ -412,6 +460,7 @@ int main(void)
                 grid_block_spawn(&grid, &next_block, shape);
             }
         } else if (input == INPUT_HARD_DROP) {
+            uart_puts("HDROP!\r\n");
             grid_block_drop(&grid, &current_block);
             grid_block_add(&grid, &current_block);
             grid_clear_lines(&grid);
@@ -421,6 +470,30 @@ int main(void)
 
             shape = shape_random();
             grid_block_spawn(&grid, &next_block, shape);
+        } else if (input == INPUT_PAUSE) {
+            uart_puts("PAUSE\r\n");
+            /* Wait for another P to resume */
+            while (1) {
+                draw_swap_buffers();  /* Keep display alive */
+                input_t resume = input_poll();
+                if (resume == INPUT_PAUSE) {
+                    uart_puts("RESUME\r\n");
+                    last_drop_time = soft_tick;  /* Reset drop timer */
+                    break;
+                } else if (resume == INPUT_QUIT) {
+                    uart_puts("QUIT\r\n");
+                    game_state = GAME_OVER;
+                    break;
+                }
+            }
+        } else if (input == INPUT_QUIT) {
+            uart_puts("QUIT\r\n");
+            game_state = GAME_OVER;
+        }
+
+        /* Check for game over immediately after input handling */
+        if (game_state == GAME_OVER) {
+            break;
         }
 
         soft_tick++;

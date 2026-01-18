@@ -60,3 +60,5 @@ test_run_dir/
 **/src/test/scala/riscv/compliance/ComplianceTest.scala
 **/src/main/resources/test.asmbin
 **/src/main/resources/test_*.asmbin
+4-soc/csrc/tetris/README.md
+4-soc/verilog/verilator/firrtl_black_box_resource_files.f

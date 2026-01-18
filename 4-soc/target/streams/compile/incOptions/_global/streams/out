@@ -1,7 +1,0 @@
-<<<<<<< HEAD
-[0m[[0m[0mdebug[0m] [0m[0mCreated transactional ClassFileManager with tempDir = /home/johnson/Desktop/mycpu-4soc/4-soc/target/scala-2.13/classes.bak[0m
-[0m[[0m[0mdebug[0m] [0m[0mRemoving the temporary directory used for backing up class files: /home/johnson/Desktop/mycpu-4soc/4-soc/target/scala-2.13/classes.bak[0m
-=======
-[0m[[0m[0mdebug[0m] [0m[0mCreated transactional ClassFileManager with tempDir = /home/liu/mycpu-4soc-game-port/4-soc/target/scala-2.13/classes.bak[0m
-[0m[[0m[0mdebug[0m] [0m[0mRemoving the temporary directory used for backing up class files: /home/liu/mycpu-4soc-game-port/4-soc/target/scala-2.13/classes.bak[0m
->>>>>>> 12dcf8f (T)
