@@ -492,7 +492,7 @@ int main(int argc, char **argv)
                         return 1;
                     }
                     vga_initialized = true;
-                    std::cout << "VGA display initialized\n";
+                    std::cout << "VGA display initialized\r\n";
                 }
 
                 if (vga_initialized) {
