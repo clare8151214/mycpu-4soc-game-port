@@ -43,7 +43,7 @@ void handle_input(int *y, int *velocity, int ground_y, int jump_impulse,int *sit
             if (*y < ground_y) {
                 *velocity = 4; // 給一個向下的正速度，讓它快速落地
             } else {
-                *sit=2;
+                *sit=1;
             }
         }
     }
@@ -71,4 +71,35 @@ void update_physics(int *y, int *velocity, int ground_y, int gravity) {
 }
 
 
+void print_int(int v) {
+    // 1. 如果是 0，直接處理
+    if (v == 0) {
+        while (!(*UART_STATUS & 0x01)); // 等待 UART 準備好發送
+        *UART_SEND = '0';
+        return;
+    }
+
+    // 2. 處理負數 (選配，如果你的 Cycles 會變負的話)
+    if (v < 0) {
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = '-';
+        v = -v;
+    }
+
+    char buf[12]; // int 最大 10 位數，12 夠放
+    int i = 0;
+
+    // 3. 拆解數字存入 buf (例如 v=123 -> buf=['3','2','1'])
+    while (v > 0) {
+        buf[i++] = (v % 10) + '0'; // 數字加 '0' 會變成該數字的 ASCII 字元
+        v /= 10;
+    }
+
+    // 4. 反向印出 (把 ['3','2','1'] 印成 "123")
+    while (i > 0) {
+        i--; // 先減 1 才是正確的索引
+        while (!(*UART_STATUS & 0x01)); // 等待發送緩衝區
+        *UART_SEND = buf[i];
+    }
+}
 

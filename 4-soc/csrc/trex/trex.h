@@ -25,3 +25,8 @@ void place_dino(int x, int y, uint8_t color, int frame);
 void place_dino_setdown(int x, int y, uint8_t color, int frame);
 void place_cactus(int x, int y, uint8_t color);
 void print_score(int v);
+void print_int(int v);
+
+
+
+

@@ -11,6 +11,8 @@ static inline void delay(uint32_t cycles)
         __asm__ volatile("nop");
 }
 
+
+
 int main()
 {
 
@@ -28,7 +30,7 @@ int main()
         shap++;
         delay(10);
     }
-
+    
     run_trex(shap);
     
     return 0;

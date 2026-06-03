@@ -135,6 +135,21 @@ static inline void delay(uint32_t cycles)
         __asm__ volatile("nop");
 }
 
+static inline uint32_t get_cycles() {
+    uint32_t cycles;
+    // 使用 rdcycle 指令讀取 mcycle 暫存器
+    __asm__ volatile ("rdcycle %0" : "=r"(cycles));
+    return cycles;
+}
+
+static inline uint32_t get_instret() {
+    uint32_t instret;
+    // 使用 rdinstret 指令讀取 minstret 暫存器
+    __asm__ volatile ("rdinstret %0" : "=r"(instret));
+    return instret;
+}
+
+
 #define VGA_STAT_SAFE 0x01
 void run_trex(uint32_t shap) {
     int dino_x = 5;
@@ -151,9 +166,10 @@ void run_trex(uint32_t shap) {
     uint32_t offset=0;
     int score=0;
     char *score_msg = "score:";
-    
     draw_init_buffers(); 
     while (1) {
+        uint32_t start_c = get_cycles();
+        uint32_t start_i = get_instret();
         // 鍵盤輸入偵測 (UART) 
         // 檢查 UART 狀態暫存器，看是否有按鍵按下
         handle_input(&dino_y, &y_velocity, GROUND_Y, JUMP_IMPULSE,&setdown_times);
@@ -169,10 +185,9 @@ void run_trex(uint32_t shap) {
 
         cactus_x -= 1;         
         if (cactus_x < -8) {
-            //my_rand(&shap);
-            //offset = (shap ) % 10;
-            cactus_x = 64 ;
-            //- offset;
+            my_rand(&shap);
+            offset = (shap ) % 32;
+            cactus_x = 64 - offset;
             score+=1; 
             print_score(score);
         }
@@ -198,7 +213,23 @@ void run_trex(uint32_t shap) {
         *VGA_CTRL = (current_frame << 4) | 0x01;
        
         body_picture++;
+        uint32_t end_c = get_cycles();   // 紀錄結束週期
+        uint32_t duration = end_c - start_c;
+        uint32_t end_i = get_instret(); // 紀錄結束指令數
+        uint32_t inst_duration = end_i - start_i;
+
+         // 使用你之前寫好的 print_int 函式！
+        print_int(duration);
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = '\r';  
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = '\n';
         
+        print_int(inst_duration);
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = '\r';
+        while (!(*UART_STATUS & 0x01));
+        *UART_SEND = '\n';
     }
 }
 
@@ -219,6 +250,8 @@ void print_score(int s) {
     *UART_SEND = msg_s[5];
     while (!(*UART_STATUS & 0x01));
     *UART_SEND = s + '0';
+    while (!(*UART_STATUS & 0x01));
+    *UART_SEND = '0';
     while (!(*UART_STATUS & 0x01));
     *UART_SEND = '\r';  
     while (!(*UART_STATUS & 0x01));
@@ -277,7 +310,7 @@ void draw_cleanup_buffers(void)
 {
     for (int i = 28 * 64; i < 58*64; i++) {
         vga_framebuffer[i] = 0;
-        delay(10); 
+        delay(20); 
     }
     
 
